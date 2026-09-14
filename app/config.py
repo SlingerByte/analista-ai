@@ -15,9 +15,16 @@ class Settings(BaseSettings):
     secret_key: str = "dev-insecure-change-me"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/analista_ia"
     port: int = 8000
-    # DEMO ONLY: asesor en contexto hasta que exista autenticación real.
-    # Nunca usar filtros del cliente como aislamiento; ver app/dashboard.py.
-    demo_advisor_id: str = "AS-001"
+
+    # Usuarios demo (solo desarrollo). Las contraseñas pueden sobreescribirse
+    # por entorno (ADVISOR_DEMO_PASSWORD, etc.); en la DB solo vive el hash.
+    advisor_demo_email: str = "advisor.demo@motos.local"
+    advisor_demo_password: str = "demo-asesor-123"
+    advisor_demo_advisor_id: str = "AS-001"
+    supervisor_demo_email: str = "supervisor.demo@motos.local"
+    supervisor_demo_password: str = "demo-supervisor-123"
+    admin_demo_email: str = "admin.demo@motos.local"
+    admin_demo_password: str = "demo-admin-123"
 
     ai_provider: str = "ollama"
     ai_timeout_seconds: float = 60.0

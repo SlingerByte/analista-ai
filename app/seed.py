@@ -8,8 +8,10 @@ from pathlib import Path
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from app.auth import hash_password
+from app.config import get_settings
 from app.db import SessionLocal
-from app.models import Advisor, CatalogItem, Company, PointOfSale
+from app.models import Advisor, CatalogItem, Company, PointOfSale, User
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
@@ -120,6 +122,8 @@ def seed(session: Session, data_dir: Path = DATA_DIR) -> dict[str, int]:
     for row in catalogo:
         _upsert_catalog_item(session, row)
 
+    _seed_demo_users(session)
+
     session.commit()
 
     return {
@@ -131,7 +135,70 @@ def seed(session: Session, data_dir: Path = DATA_DIR) -> dict[str, int]:
         "catalog_items": session.scalar(
             sa.select(sa.func.count()).select_from(CatalogItem)
         ),
+        "users": session.scalar(sa.select(sa.func.count()).select_from(User)),
     }
+
+
+def _upsert_demo_user(
+    session: Session,
+    email: str,
+    password: str,
+    role: str,
+    company_id: str | None,
+    advisor_id: str | None,
+) -> None:
+    existing = session.scalar(sa.select(User).where(User.email == email))
+    password_hash = hash_password(password)
+    if existing is None:
+        session.add(
+            User(
+                company_id=company_id,
+                advisor_id=advisor_id,
+                email=email,
+                password_hash=password_hash,
+                role=role,
+            )
+        )
+    else:
+        existing.company_id = company_id
+        existing.advisor_id = advisor_id
+        existing.password_hash = password_hash
+        existing.role = role
+
+
+def _seed_demo_users(session: Session) -> None:
+    """Usuarios demo idempotentes (solo desarrollo; credenciales por entorno)."""
+    settings = get_settings()
+    advisor = session.get(Advisor, settings.advisor_demo_advisor_id)
+    if advisor is not None:
+        _upsert_demo_user(
+            session,
+            settings.advisor_demo_email.strip().lower(),
+            settings.advisor_demo_password,
+            "asesor",
+            advisor.company_id,
+            advisor.advisor_id,
+        )
+    supervisor_company = session.scalar(
+        sa.select(Company.company_id).order_by(Company.company_id).limit(1)
+    )
+    if supervisor_company is not None:
+        _upsert_demo_user(
+            session,
+            settings.supervisor_demo_email.strip().lower(),
+            settings.supervisor_demo_password,
+            "supervisor",
+            supervisor_company,
+            None,
+        )
+    _upsert_demo_user(
+        session,
+        settings.admin_demo_email.strip().lower(),
+        settings.admin_demo_password,
+        "admin",
+        None,
+        None,
+    )
 
 
 def main() -> None:

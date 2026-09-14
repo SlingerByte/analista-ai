@@ -12,6 +12,7 @@ dependencies = [
     "alembic>=1.13,<2.0",
     "jinja2>=3.1,<4.0",
     "pydantic-settings>=2.4,<3.0",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
@@ -20,5 +21,18 @@ dev = [
     "httpx>=0.27,<1.0",
 ]
 
+[project.scripts]
+dev = "app.demo:dev_main"
+supervisor = "app.demo:serve_main"
+pipeline = "app.pipeline.__main__:main_no_ai"
+pipeline-ai = "app.pipeline.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.uv]
-package = false
+package = true

@@ -50,13 +50,16 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         sa.CheckConstraint(
-            "role IN ('admin_empresa', 'supervisor', 'asesor')", name="ck_users_role"
+            "role IN ('admin_empresa', 'supervisor', 'asesor', 'admin')",
+            name="ck_users_role",
         ),
     )
 
     user_id: Mapped[int] = mapped_column(BigIntType, primary_key=True, autoincrement=True)
-    company_id: Mapped[str] = mapped_column(
-        sa.ForeignKey("companies.company_id"), nullable=False, index=True
+    # Nullable: el admin global no pertenece a ninguna empresa. Asesores y
+    # supervisores siempre tienen company_id (la app lo exige).
+    company_id: Mapped[str | None] = mapped_column(
+        sa.ForeignKey("companies.company_id"), nullable=True, index=True
     )
     advisor_id: Mapped[str | None] = mapped_column(
         sa.ForeignKey("advisors.advisor_id"), nullable=True
@@ -68,5 +71,5 @@ class User(Base):
         sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
     )
 
-    company: Mapped["Company"] = relationship(back_populates="users")
+    company: Mapped["Company | None"] = relationship(back_populates="users")
     advisor: Mapped["Advisor | None"] = relationship(back_populates="users")

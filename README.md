@@ -61,6 +61,35 @@ PostgreSQL local opcional (no obligatorio):
 docker compose up -d db
 ```
 
+## Desarrollo local
+
+Un solo comando para entorno + migraciones + servidor (nunca borra datos):
+
+```bash
+uv run dev
+```
+
+Entrar a http://127.0.0.1:8000 → login demo (solo desarrollo):
+
+```text
+advisor.demo@motos.local / demo-asesor-123      → vista asesor (sus leads)
+supervisor.demo@motos.local / demo-supervisor-123 → supervisión (su empresa)
+admin.demo@motos.local / demo-admin-123         → supervisión global
+```
+
+Las credenciales demo se configuran por entorno (`ADVISOR_DEMO_*`,
+`SUPERVISOR_DEMO_*`); en la base solo se guarda el hash. El aislamiento por
+empresa/POS/asesor se aplica siempre en backend desde el usuario autenticado.
+
+Procesar datos:
+
+```bash
+uv run pipeline        # pipeline completo sin IA
+uv run pipeline-ai     # pipeline completo con IA (todo lo pendiente)
+uv run pipeline-ai --ai-limit 100   # prueba controlada
+uv run supervisor      # como dev; el rol lo determina el login
+```
+
 ## Variables de entorno
 
 Ver `.env.example`. Como mínimo: `APP_ENV`, `SECRET_KEY`, `DATABASE_URL`, `PORT`.

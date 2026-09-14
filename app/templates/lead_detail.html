@@ -32,10 +32,10 @@
   <body>
     <header>
       <h1>{{ lead.customer_name or 'Sin nombre' }} <span class="badge badge-{{ score.band.lower() if score and score.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ score.band if score and score.band else 'Sin score' }}</span></h1>
-      <p>{{ lead.lead_id }} · ranking #{{ assignment.priority_rank }} · {{ advisor.name }}</p>
+      <p>{{ lead.lead_id }} · ranking #{{ assignment.priority_rank }} · {{ advisor_name }}{% if assignment.advisor_id %} ({{ assignment.advisor_id }}){% endif %}</p>
     </header>
     <main>
-      <p><a href="/">← Volver a Mis leads de hoy</a></p>
+      <p><a href="{{ back_url }}">← {{ back_label }}</a></p>
       <section>
         <h2>Datos del lead</h2>
         <dl>

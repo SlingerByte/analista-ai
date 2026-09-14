@@ -38,6 +38,12 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def get_session() -> Generator[Session, None, None]:
+    """Dependencia FastAPI compartida (sobrescribible en tests)."""
+    with SessionLocal() as session:
+        yield session
+
+
 def check_database() -> str:
     try:
         with engine.connect() as connection:

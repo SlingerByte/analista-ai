@@ -11,6 +11,7 @@ EXPECTED_COUNTS = {
     "points_of_sale": 15,
     "advisors": 42,
     "catalog_items": 24,
+    "users": 3,
 }
 
 

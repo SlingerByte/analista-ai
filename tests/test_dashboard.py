@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 import app.models  # noqa: F401
+from app.auth import SESSION_COOKIE, hash_password
+from app.auth import get_session as auth_get_session
 from app.dashboard import get_session
 from app.db import Base
 from app.main import app
@@ -21,9 +23,12 @@ from app.models import (
     Lead,
     LeadScore,
     PointOfSale,
+    User,
 )
 
 DAY = date(2026, 9, 14)
+PASSWORD = "secret"
+PASSWORD_HASH = hash_password(PASSWORD)
 
 
 def _score(lead_id, queue, band, reasons=None):
@@ -77,6 +82,12 @@ def client(tmp_path):
                     name="Pos Dos", daily_capacity=5, active=True),
             Advisor(advisor_id="AS-009", company_id="EMP-02", point_of_sale_id="PV-006",
                     name="Otra Empresa", daily_capacity=5, active=True),
+        ])
+        session.add_all([
+            User(company_id="EMP-01", advisor_id="AS-001", email="adv@x",
+                 password_hash=PASSWORD_HASH, role="asesor"),
+            User(company_id="EMP-01", advisor_id=None, email="sup@x",
+                 password_hash=PASSWORD_HASH, role="supervisor"),
         ])
         session.add(CatalogItem(sku="SKU-1", brand="Honda", line="Navi",
                                 engine_cc=110, segment="scooter", list_price=7290000.0))
@@ -156,32 +167,34 @@ def client(tmp_path):
             session.close()
 
     app.dependency_overrides[get_session] = _override
-    yield TestClient(app)
+    app.dependency_overrides[auth_get_session] = _override
+    test_client = TestClient(app, follow_redirects=False)
+    test_client.post("/login", data={"email": "adv@x", "password": PASSWORD})
+    yield test_client
     app.dependency_overrides.clear()
     engine.dispose()
 
 
+def response_text(client, path):
+    response = client.get(path)
+    assert response.status_code == 200, (path, response.status_code)
+    return response.text
+
+
 def test_listado_muestra_solo_leads_del_asesor(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "Mis leads de hoy" in response.text
-    assert "Priorizacion" in response.text
+    text = response_text(client, "/")
+    assert "Mis leads de hoy" in response_text(client, "/")
+    assert "Priorizacion" in text
     for name in ("Ana Alta", "Beto Medio", "Ceci Baja"):
-        assert name in response.text
-    assert "Forastero" not in response.text
-    assert "Vecino" not in response.text
-    assert ">3<" in response.text  # total
+        assert name in text
+    assert "Forastero" not in text
+    assert "Vecino" not in text
+    assert ">3<" in text  # total
 
 
 def test_orden_por_priority_rank(client):
     text = response_text(client, "/")
     assert text.index("Ana Alta") < text.index("Beto Medio") < text.index("Ceci Baja")
-
-
-def response_text(client, path):
-    response = client.get(path)
-    assert response.status_code == 200
-    return response.text
 
 
 def test_filtro_por_banda(client):
@@ -215,7 +228,6 @@ def test_detalle_muestra_razones_y_senales(client):
     assert "Quiere comprar" in text
     assert "financiacion" in text
     assert "ranking #1" in text
-    # Null de IA visible como desconocido, sin inventar.
     assert "Desconocido" in text
 
 
@@ -230,11 +242,16 @@ def test_detalle_fuera_del_contexto_es_404(client):
     assert client.get("/leads/NOPE").status_code == 404
 
 
-def test_asesor_demo_inexistente_es_404(client, monkeypatch):
-    from types import SimpleNamespace
+def test_sin_sesion_redirige_a_login(client):
+    bare = TestClient(app, follow_redirects=False)
+    for path in ("/", "/supervision", "/leads/LD-A"):
+        response = bare.get(path)
+        assert response.status_code == 303, path
+        assert response.headers["location"] == "/login"
 
-    monkeypatch.setattr(
-        "app.dashboard.get_settings",
-        lambda: SimpleNamespace(demo_advisor_id="NOPE", app_name="x"),
-    )
-    assert client.get("/").status_code == 404
+
+def test_logout_invalida_sesion(client):
+    assert SESSION_COOKIE in client.cookies
+    response = client.get("/logout", follow_redirects=False)
+    assert response.status_code == 303
+    assert client.get("/").status_code == 303

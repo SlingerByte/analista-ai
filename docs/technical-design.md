@@ -229,16 +229,28 @@ compartido implica la misma persona.
 El scope es **siempre intra-empresa**: nunca se agrupan leads de empresas
 distintas, aunque compartan teléfono o email.
 
-| Nivel | Evidencia (según los datos reales) | Acción |
+| Regla (`rule_id`) | Evidencia | Resultado |
 |---|---|---|
 | **Ingesta / PK** | Mismo `lead_id` y contenido idéntico. Audit: 2 filas (`LD-00011`, `LD-00251`). | No usa clusters: lo resuelve el upsert por PK. Queda una sola fila canónica. |
-| **Fuerte** | Distintos `lead_id`, misma empresa, teléfono + email iguales, o teléfono + nombre normalizado idéntico. | Cluster automático. Se elige canónico; se conservan ambos. |
-| **Posible** | Teléfono normalizado igual **y** nombre muy similar (Jaro-Winkler ≥ 0,90). Audit: 140 teléfonos compartidos, 93 grupos nombre+teléfono, 1 email duplicado. | Cluster `possible`, **no se auto-fusiona**. Requiere revisión; mientras tanto, un solo lead del cluster entra a la cola. |
-| **Débil** | Teléfono solo, nombre solo, email solo, o ciudad+modelo. | Solo etiqueta/alerta. No agrupa ni bloquea. |
+| **Fuerte · `PHONE_EMAIL_EXACT`** | Mismo teléfono normalizado **y** mismo email normalizado, ambos presentes. | Cluster `auto`, `match_strength = strong`. Se conservan todos los leads. |
+| **Media · `PHONE_NAME_SIMILAR`** | Mismo teléfono normalizado **y** nombre con Jaro-Winkler ≥ 0,90. | Cluster `possible_pending`, `match_strength = possible`. Requiere revisión. |
+| **Débil · `NAME_CITY_MATCH`** | Nombre normalizado **y** ciudad normalizada iguales. | Cluster `possible_pending`, `match_strength = weak`. **Nunca** se auto-consolida. |
+| **Insuficiente** | Mismo teléfono solo, o email solo, o nombre solo. | No se crea relación. |
 
-**Decisión explícita**: un teléfono compartido por sí solo es evidencia **débil**,
-no "posible". El audit mostró como máximo 2 leads por teléfono compartido, lo que
-es compatible tanto con duplicados como con un mismo hogar/negocio.
+**Decisiones explícitas**:
+- Un teléfono compartido **por sí solo** no relaciona leads (el audit mostró como
+  máximo 2 leads por teléfono y es compatible con un mismo hogar/negocio).
+- `status = auto` **solo** cuando todas las relaciones del cluster son fuertes;
+  cualquier relación media o débil deja el cluster en `possible_pending`.
+- No se calcula un score probabilístico: `identity_clusters.score` queda `NULL` y
+  la evidencia se expresa con hechos (`phone_match`, `email_match`,
+  `name_similarity`), sin `confidence`.
+- El canónico es el `lead_id` mínimo del componente (determinista y estable).
+- Componentes por union-find solo entre leads relacionados; no se crean clusters
+  para leads aislados.
+
+Implementación: `app/identity/` (`python -m app.identity`, o `python -m app.pipeline`
+para ingesta + identidad).
 
 ### 7.2 Entidad de identidad
 
@@ -251,8 +263,14 @@ No se fusionan filas. Se modela identidad aparte, con dos tablas:
 - `identity_members`: `cluster_id`, `lead_id`, `role` (`canonical`/`member`),
   `rule_id`, `match_strength`, `evidence` (JSONB).
 
-Cada cluster explica **por qué** agrupa: `rule_id` + evidencias concretas (mismo
-teléfono, similitud de nombre, mismo email).
+Cada cluster explica **por qué** agrupa: `rule_id` + evidencias concretas. Cada
+`identity_member.evidence` guarda, por ejemplo:
+
+```json
+{ "rule": "PHONE_EMAIL_EXACT", "phone_match": true, "email_match": true, "name_similarity": null, "related_lead_id": "LD-00123" }
+{ "rule": "PHONE_NAME_SIMILAR", "phone_match": true, "email_match": false, "name_similarity": 0.94, "related_lead_id": "LD-00124" }
+{ "rule": "NAME_CITY_MATCH", "name_match": true, "city_match": true, "name_similarity": 1.0, "related_lead_id": "LD-00125" }
+```
 
 ### 7.3 Efecto en la operación
 
@@ -271,9 +289,12 @@ teléfono, similitud de nombre, mismo email).
 - Se enlazan por `lead_id`. Si el `lead_id` no existe en `leads`
   (12 huérfanas del bloque `LD-9xxxx`, todas `2026-08-15 11:00:00`), la
   conversación se guarda con `status = orphan` y `lead_id` nulo. **No se reasigna
-  artificialmente.** Queda trazable en una vista de administración.
-- 25 `lead_id` tienen 2 conversaciones → se conservan **separadas**, con una
-  vista consolidada a nivel de lead.
+  artificialmente.** Queda trazable en una vista de administración y el
+  `source_lead_id` original se conserva en `pipeline_runs.steps`.
+- 25 `lead_id` tienen 2 conversaciones → se conservan **separadas** (nunca se
+  fusionan mensajes físicamente), con `conversation_id` y orden cronológico
+  preservados. `app/identity/conversations.py::cluster_conversations` devuelve la
+  combinación cronológica por cluster para la futura extracción IA.
 
 ### 8.2 Consolidación
 

@@ -29,11 +29,19 @@ class AIExtraction(Base):
         nullable=False,
         index=True,
     )
+    # Foto del lead al momento de extraer. Nullable: las conversaciones
+    # huérfanas no tienen lead y no se inventa ninguno (ver service.py).
+    lead_id: Mapped[str | None] = mapped_column(
+        sa.ForeignKey("leads.lead_id", ondelete="CASCADE"), nullable=True, index=True
+    )
     provider: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     model_name: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     prompt_version: Mapped[str] = mapped_column(sa.Text, nullable=False)
     schema_version: Mapped[str] = mapped_column(sa.Text, nullable=False)
     status: Mapped[str] = mapped_column(sa.Text, nullable=False, index=True)
+    # Solo "success" | "error". En "error" guarda el motivo sanitizado
+    # (nunca secretos: AIRequestError no incluye credenciales por diseño).
+    error: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     input_hash: Mapped[str] = mapped_column(sa.Text, nullable=False)
     fields: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     raw_response: Mapped[dict | None] = mapped_column(JSONType, nullable=True)

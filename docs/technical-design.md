@@ -430,6 +430,20 @@ pipeline → AIExtractor ──┬── OllamaExtractor
   Ollama usa structured output pasando el JSON Schema Pydantic en `format`
   (`app/ai/ollama.py::structured_format`), sin dependencias nuevas. El benchmark
   conserva el baseline AI-0 dentro del nuevo reporte (sección de comparación).
+- **Persistencia productiva (`app/ai/service.py`, `AIExtraction`)**: cada
+  conversación procesada guarda una fila con `conversation_id`, `lead_id` (foto al
+  momento de extraer; NULL en huérfanas, sin inventar), `input_hash`, versiones,
+  `provider`/`model_name`, `status` (`success`/`error`), `fields` (JSON con los 8
+  campos + evidencias AI-1A), `error` sanitizado y `latency_ms`.
+  `input_hash = sha256(prompt_version + schema_version + transcript)`; el unique
+  `(conversation_id, input_hash)` + filtro por provider/model da idempotencia (sin
+  rellamada si nada cambió); un cambio de contenido o versiones crea fila nueva y
+  la anterior queda `is_current = false`. `force` reprocesa actualizando la fila
+  del mismo input (no duplica). Lectores `get_current_extraction()` y
+  `lead_extractions()` son el punto de integración con scoring (la consolidación
+  por lead queda para después). Batch secuencial: `python -m app.ai --limit N`.
+  `pipeline.py` no se tocó: `process_ai` necesita extractor configurado y se
+  integrará cuando el orquestador lo requiera.
 
 ---
 

@@ -9,6 +9,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.config import get_settings  # noqa: E402
 from app.db import Base  # noqa: E402
+import app.models  # noqa: E402,F401
 
 config = context.config
 

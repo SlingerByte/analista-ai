@@ -395,6 +395,33 @@ Los ocho campos objetivo del extractor son: `modelo_interes`, `forma_pago`,
 - El proveedor/modelo concreto queda como **decisión abierta** (ver §18); el
   contrato no depende de él.
 
+### 9.7 Abstracción de proveedor y benchmark AI-0
+
+Para no acoplar el pipeline a un proveedor, el acceso a IA pasa por una interfaz
+común (`app/ai/`):
+
+```text
+pipeline → AIExtractor ──┬── OllamaExtractor
+                         └── OpenRouterExtractor
+```
+
+- `AIExtractor` expone `availability()` y `extract(conversation) → ExtractionOutcome`.
+- Proveedor por configuración: `AI_PROVIDER=ollama|openrouter` (aún **sin fallback
+  automático** entre proveedores).
+- HTTP con la librería estándar (`urllib`); sin SDKs grandes.
+- Configuración por entorno: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`,
+  `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `AI_TIMEOUT_SECONDS`. Las claves nunca
+  se imprimen ni se versionan.
+- **AI-0 (benchmark experimental)**: `uv run python -m app.ai.benchmark` selecciona
+  10 conversaciones deterministas (por señales del texto: modelo, presupuesto,
+  cuota, financiación, cita, cotización, objeción, ambigua, poca evidencia), prueba
+  Ollama y OpenRouter si están configurados y escribe `reports/ai_benchmark.json` y
+  `.md`. Si un proveedor no está disponible, se **omite con motivo** (no es error).
+- El schema del benchmark (`app/ai/schema.py`, `SCHEMA_VERSION = "v1"`) tiene 8
+  campos + `*_evidence` literal; es un contrato reducido de exploración, distinto
+  del contrato persistido más rico descrito en §9.1. No modifica el pipeline
+  productivo.
+
 ---
 
 ## 10. Scoring

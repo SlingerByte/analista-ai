@@ -1,0 +1,373 @@
+{
+  "generated_at": "2026-09-14T18:23:28+00:00",
+  "schema_version": "v1",
+  "prompt_version": "v1",
+  "cases": [
+    {
+      "case": "modelo_claro",
+      "conversation_id": "CONV-00587",
+      "lead_id": "LD-01329",
+      "message_count": 6
+    },
+    {
+      "case": "modelo_variacion",
+      "conversation_id": "CONV-00030",
+      "lead_id": "LD-00122",
+      "message_count": 3
+    },
+    {
+      "case": "presupuesto",
+      "conversation_id": "CONV-00229",
+      "lead_id": "LD-00430",
+      "message_count": 7
+    },
+    {
+      "case": "cuota",
+      "conversation_id": "CONV-00613",
+      "lead_id": "LD-01377",
+      "message_count": 7
+    },
+    {
+      "case": "financiacion",
+      "conversation_id": "CONV-00060",
+      "lead_id": "LD-00068",
+      "message_count": 7
+    },
+    {
+      "case": "solicitud_cita",
+      "conversation_id": "CONV-00502",
+      "lead_id": "LD-00681",
+      "message_count": 8
+    },
+    {
+      "case": "cotizacion_contexto",
+      "conversation_id": "CONV-00018",
+      "lead_id": "LD-00273",
+      "message_count": 7
+    },
+    {
+      "case": "objecion",
+      "conversation_id": "CONV-00271",
+      "lead_id": "LD-00648",
+      "message_count": 6
+    },
+    {
+      "case": "ambigua",
+      "conversation_id": "CONV-00210",
+      "lead_id": "LD-01394",
+      "message_count": 6
+    },
+    {
+      "case": "poca_evidencia",
+      "conversation_id": "CONV-00267",
+      "lead_id": "LD-00498",
+      "message_count": 3
+    }
+  ],
+  "providers": {
+    "ollama": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "available": true,
+      "availability_reason": "ok",
+      "results": [
+        {
+          "case": "modelo_claro",
+          "conversation_id": "CONV-00587",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 5802,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 1,
+          "fields_with_evidence": 1,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Bajaj Pulsar RS 200",
+            "model_interes_evidence": "Hola buenas, me interesa la Bajaj Pulsar RS 200",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": null,
+            "cuota_inicial_evidence": null,
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": null,
+            "solicitud_cotizacion_evidence": null
+          }
+        },
+        {
+          "case": "modelo_variacion",
+          "conversation_id": "CONV-00030",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 5821,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 2,
+          "fields_with_evidence": 2,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "AKT TTR 200",
+            "model_interes_evidence": "cliente: Buen día, vi el anuncio de la AKT TTR 200",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": null,
+            "cuota_inicial_evidence": null,
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": true,
+            "solicitud_cotizacion_evidence": "asesor: ¿Sigue interesado? quedo atento"
+          }
+        },
+        {
+          "case": "presupuesto",
+          "conversation_id": "CONV-00229",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 6510,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 3,
+          "fields_with_evidence": 3,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Honda Navi",
+            "model_interes_evidence": "cliente: Qué más pues, quiero información de la Honda Navi",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": 480000.0,
+            "cuota_inicial_evidence": "asesor: Con esa inicial la cuota le queda alrededor de $480.000 a 48 meses.",
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": true,
+            "solicitud_cotizacion_evidence": "cliente: Bueno, mándela y yo le digo"
+          }
+        },
+        {
+          "case": "cuota",
+          "conversation_id": "CONV-00613",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 7133,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 4,
+          "fields_with_evidence": 4,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Honda CB 125F Twister",
+            "model_interes_evidence": "¡Hola! Con mucho gusto le colaboro. La Honda CB 125F Twister está en $7.990.000 más matrícula y SOAT.",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": 480000.0,
+            "cuota_inicial_evidence": "Con esa inicial la cuota le queda alrededor de $480.000 a 48 meses.",
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": "cuota",
+            "objecion_evidence": "Esa tasa está muy alta",
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": true,
+            "solicitud_cotizacion_evidence": "Bueno, mándela y yo le digo"
+          }
+        },
+        {
+          "case": "financiacion",
+          "conversation_id": "CONV-00060",
+          "success": true,
+          "schema_valid": false,
+          "latency_ms": 6700,
+          "error": "schema validation failed: 1 error(s)",
+          "raw_text": "{\n  \"model_interes\": \"AKT Dynamic R3 125\",\n  \"model_interes_evidence\": \"Buen día, vi el anuncio de la AKT Dynamic R3 125\",\n  \"presupuesto\": null,\n  \"presupuesto_evidence\": null,\n  \"cuota_inicial\": 410000,\n  \"cuota_inicial_evidence\": \"Con esa inicial la cuota le queda alrededor de $410.000 a 48 meses.\",\n  \"forma_pago\": null,\n  \"forma_pago_evidence\": null,\n  \"intencion_compra\": null,\n  \"intencion_compra_evidence\": null,\n  \"objecion\": null,\n  \"objecion_evidence\": null,\n  \"solicitud_cita\": null,\n  \"",
+          "fields_extracted": 0,
+          "fields_with_evidence": 0,
+          "extraction": null
+        },
+        {
+          "case": "solicitud_cita",
+          "conversation_id": "CONV-00502",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 6448,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 3,
+          "fields_with_evidence": 3,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Hero Eco Deluxe 100",
+            "model_interes_evidence": "cliente: Qué más pues, me interesa la Hero Eco Deluxe 100",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": 2000000.0,
+            "cuota_inicial_evidence": "cliente: tengo 2,0 millones para la inicial",
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": true,
+            "solicitud_cita_evidence": "asesor: Claro que sí, lo esperamos. Estamos de 8 a 6, ¿le separo la moto mientras tanto? cliente: Hágale pues, ya voy en camino",
+            "solicitud_cotizacion": null,
+            "solicitud_cotizacion_evidence": null
+          }
+        },
+        {
+          "case": "cotizacion_contexto",
+          "conversation_id": "CONV-00018",
+          "success": true,
+          "schema_valid": false,
+          "latency_ms": 6080,
+          "error": "schema validation failed: 1 error(s)",
+          "raw_text": "{\n  \"model_interes\": \"Bajaj Dominar 400\",\n  \"model_interes_evidence\": \"Qué más pues, vi el anuncio de la Bajaj Dominar 400\",\n  \"presupuesto\": null,\n  \"presupuesto_evidence\": null,\n  \"cuota_inicial\": null,\n  \"cuota_inicial_evidence\": null,\n  \"forma_pago\": null,\n  \"forma_pago_evidence\": null,\n  \"intencion_compra\": null,\n  \"intencion_compra_evidence\": null,\n  \"objecion\": true,\n  \"objecion_evidence\": \"Esa tasa está muy alta\",\n  \"solicitud_cita\": null,\n  \"solicitud_cita_evidence\": null,\n  \"solicitud_",
+          "fields_extracted": 0,
+          "fields_with_evidence": 0,
+          "extraction": null
+        },
+        {
+          "case": "objecion",
+          "conversation_id": "CONV-00271",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 5629,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 1,
+          "fields_with_evidence": 1,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "AKT NKD 125",
+            "model_interes_evidence": "Buenas, estoy averiguando por la AKT NKD 125",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": null,
+            "cuota_inicial_evidence": null,
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": null,
+            "solicitud_cotizacion_evidence": null
+          }
+        },
+        {
+          "case": "ambigua",
+          "conversation_id": "CONV-00210",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 5708,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 2,
+          "fields_with_evidence": 2,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Suzuki GN 125",
+            "model_interes_evidence": "Hola buenas, vi el anuncio de la Suzuki GN 125",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": null,
+            "cuota_inicial_evidence": null,
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": true,
+            "solicitud_cotizacion_evidence": "Dale pues"
+          }
+        },
+        {
+          "case": "poca_evidencia",
+          "conversation_id": "CONV-00267",
+          "success": true,
+          "schema_valid": true,
+          "latency_ms": 5630,
+          "error": null,
+          "raw_text": null,
+          "fields_extracted": 2,
+          "fields_with_evidence": 2,
+          "extraction": {
+            "schema_version": "v1",
+            "model_interes": "Hero Eco Deluxe 100",
+            "model_interes_evidence": "Qsé, quiero información de la Hero Eco Deluxe 100",
+            "presupuesto": null,
+            "presupuesto_evidence": null,
+            "cuota_inicial": null,
+            "cuota_inicial_evidence": null,
+            "forma_pago": null,
+            "forma_pago_evidence": null,
+            "intencion_compra": null,
+            "intencion_compra_evidence": null,
+            "objecion": null,
+            "objecion_evidence": null,
+            "solicitud_cita": null,
+            "solicitud_cita_evidence": null,
+            "solicitud_cotizacion": true,
+            "solicitud_cotizacion_evidence": "¿Sigue interesado? quedo atento"
+          }
+        }
+      ],
+      "metrics": {
+        "requests": 10,
+        "request_success_rate": 1.0,
+        "schema_valid_rate": 0.8,
+        "average_latency_ms": 6146.1,
+        "median_latency_ms": 5950.5,
+        "fields_extracted": 18,
+        "fields_with_evidence": 18,
+        "evidence_rate": 1.0,
+        "errors": [
+          "schema validation failed: 1 error(s)",
+          "schema validation failed: 1 error(s)"
+        ]
+      }
+    },
+    "openrouter": {
+      "provider": "openrouter",
+      "model": null,
+      "available": false,
+      "availability_reason": "OPENROUTER_API_KEY not configured",
+      "results": [],
+      "metrics": {
+        "requests": 0,
+        "request_success_rate": null,
+        "schema_valid_rate": null,
+        "average_latency_ms": null,
+        "median_latency_ms": null,
+        "fields_extracted": 0,
+        "fields_with_evidence": 0,
+        "evidence_rate": null,
+        "errors": []
+      }
+    }
+  }
+}

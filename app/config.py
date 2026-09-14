@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/analista_ia"
     port: int = 8000
 
+    ai_provider: str = "ollama"
+    ai_timeout_seconds: float = 60.0
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str | None = None
+    openrouter_api_key: str | None = None
+    openrouter_model: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
 
 @lru_cache
 def get_settings() -> Settings:

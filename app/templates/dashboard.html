@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mis leads de hoy | {{ app_name }}</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f1f5f9; color: #0f172a; }
+      header { background: #0f172a; color: #e2e8f0; padding: 1rem 2rem; }
+      header h1 { margin: 0; font-size: 1.25rem; }
+      header p { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.9rem; }
+      main { max-width: 72rem; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+      .cards { display: flex; gap: 1rem; margin: 1rem 0; flex-wrap: wrap; }
+      .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+              padding: 0.75rem 1.25rem; min-width: 8rem; }
+      .card strong { display: block; font-size: 1.5rem; }
+      .card span { font-size: 0.85rem; color: #475569; }
+      form.filters { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+                     padding: 0.75rem 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;
+                     align-items: end; margin-bottom: 1rem; }
+      form.filters label { font-size: 0.8rem; color: #475569; display: grid; gap: 0.25rem; }
+      form.filters input, form.filters select { padding: 0.35rem 0.5rem; font-size: 0.9rem; }
+      table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.9rem; }
+      th, td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid #e2e8f0; }
+      th { background: #e2e8f0; font-size: 0.8rem; text-transform: uppercase; }
+      tr:hover td { background: #f8fafc; }
+      .rank { font-weight: 700; font-size: 1.05rem; }
+      .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+               font-weight: 700; font-size: 0.8rem; border: 2px solid; white-space: nowrap; }
+      .badge-alta { color: #991b1b; border-color: #991b1b; background: #fee2e2; }
+      .badge-media { color: #92400e; border-color: #92400e; background: #fef3c7; }
+      .badge-baja { color: #1e40af; border-color: #1e40af; background: #dbeafe; }
+      .badge-unknown { color: #475569; border-color: #475569; background: #f1f5f9; }
+      .empty { background: #fff; border: 1px dashed #94a3b8; border-radius: 0.5rem;
+               padding: 2rem; text-align: center; color: #475569; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Mis leads de hoy</h1>
+      <p>{{ app_name }} · {{ advisor.name }} ({{ advisor.advisor_id }}) · {{ advisor.point_of_sale_id }} / {{ advisor.company_id }}{% if run_date %} · {{ run_date }}{% endif %}</p>
+    </header>
+    <main>
+      <section class="cards" aria-label="Resumen">
+        <div class="card"><strong>{{ total }}</strong><span>Total leads</span></div>
+        <div class="card"><strong>{{ counts.Alta }}</strong><span>Prioridad Alta</span></div>
+        <div class="card"><strong>{{ counts.Media }}</strong><span>Prioridad Media</span></div>
+        <div class="card"><strong>{{ counts.Baja }}</strong><span>Prioridad Baja</span></div>
+      </section>
+      <form class="filters" method="get" action="/">
+        <label>Prioridad
+          <select name="banda">
+            <option value="">Todas</option>
+            {% for option in band_options %}
+            <option value="{{ option }}" {% if filters.banda == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Estado
+          <select name="estado">
+            <option value="">Todos</option>
+            {% for option in status_options %}
+            <option value="{{ option }}" {% if filters.estado == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Punto de venta
+          <select name="pos">
+            <option value="">Todos</option>
+            {% for option in pos_options %}
+            <option value="{{ option }}" {% if filters.pos == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Modelo
+          <input type="text" name="modelo" value="{{ filters.modelo }}" placeholder="p. ej. Navi" />
+        </label>
+        <button type="submit">Filtrar</button>
+        <a href="/">Limpiar</a>
+      </form>
+      {% if rows %}
+      <table>
+        <thead>
+          <tr><th>#</th><th>Prioridad</th><th>Cliente</th><th>Modelo</th><th>Ciudad</th><th>Estado</th><th>Score</th><th>POS</th><th>Empresa</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="rank">{{ row.assignment.priority_rank }}</td>
+            <td><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
+            <td>{{ row.lead.customer_name or 'Sin nombre' }}</td>
+            <td>{{ row.model }}</td>
+            <td>{{ row.lead.city_raw or row.lead.city_normalized or 'Desconocido' }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
+            <td>{{ row.lead.point_of_sale_id }}</td>
+            <td>{{ row.lead.company_id }}</td>
+            <td><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Sin leads para los criterios seleccionados.</div>
+      {% endif %}
+    </main>
+  </body>
+</html>

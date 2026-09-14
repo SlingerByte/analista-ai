@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detalle {{ lead.lead_id }} | {{ app_name }}</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f1f5f9; color: #0f172a; }
+      header { background: #0f172a; color: #e2e8f0; padding: 1rem 2rem; }
+      header h1 { margin: 0; font-size: 1.25rem; }
+      header p { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.9rem; }
+      main { max-width: 56rem; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+      section { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+                padding: 1rem 1.25rem; margin-bottom: 1rem; }
+      h2 { margin-top: 0; font-size: 1.05rem; }
+      dl { display: grid; grid-template-columns: 12rem 1fr; gap: 0.35rem 1rem; margin: 0; }
+      dt { color: #475569; font-size: 0.85rem; }
+      dd { margin: 0; font-weight: 600; }
+      .unknown { color: #94a3b8; font-weight: 400; font-style: italic; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid #e2e8f0; }
+      th { background: #f8fafc; font-size: 0.8rem; text-transform: uppercase; }
+      .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+               font-weight: 700; font-size: 0.8rem; border: 2px solid; }
+      .badge-alta { color: #991b1b; border-color: #991b1b; background: #fee2e2; }
+      .badge-media { color: #92400e; border-color: #92400e; background: #fef3c7; }
+      .badge-baja { color: #1e40af; border-color: #1e40af; background: #dbeafe; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>{{ lead.customer_name or 'Sin nombre' }} <span class="badge badge-{{ score.band.lower() if score and score.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ score.band if score and score.band else 'Sin score' }}</span></h1>
+      <p>{{ lead.lead_id }} · ranking #{{ assignment.priority_rank }} · {{ advisor.name }}</p>
+    </header>
+    <main>
+      <p><a href="/">← Volver a Mis leads de hoy</a></p>
+      <section>
+        <h2>Datos del lead</h2>
+        <dl>
+          <dt>Modelo de interés</dt><dd>{{ model }}</dd>
+          <dt>Ciudad</dt><dd>{{ lead.city_raw or lead.city_normalized or 'Desconocido' }}</dd>
+          <dt>Estado de gestión</dt><dd>{{ lead.status or 'Desconocido' }}</dd>
+          <dt>Punto de venta</dt><dd>{{ lead.point_of_sale_id }}</dd>
+          <dt>Empresa</dt><dd>{{ lead.company_id }}</dd>
+          <dt>Canal</dt><dd>{{ lead.channel or 'Desconocido' }}</dd>
+        </dl>
+      </section>
+      <section>
+        <h2>Score</h2>
+        {% if score %}
+        <dl>
+          <dt>Prioridad comercial</dt><dd>{{ score.priority_score if score.priority_score is not none else 'Desconocido' }}</dd>
+          <dt>Urgencia</dt><dd>{{ score.urgency_score if score.urgency_score is not none else 'Desconocido' }}</dd>
+          <dt>Score de cola</dt><dd>{{ score.queue_score if score.queue_score is not none else 'Desconocido' }}</dd>
+          <dt>Versión</dt><dd>{{ score.score_version }}</dd>
+        </dl>
+        {% if reasons %}
+        <h3>Razones del score</h3>
+        <table>
+          <thead><tr><th>Código</th><th>Dimensión</th><th>Detalle</th><th>Contribución</th></tr></thead>
+          <tbody>
+            {% for reason in reasons %}
+            <tr><td>{{ reason.code }}</td><td>{{ reason.dimension }}</td><td>{{ reason.text }}</td><td>{{ '%+.1f' % reason.contribution }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+        {% else %}
+        <p class="unknown">Sin score vigente para este lead.</p>
+        {% endif %}
+      </section>
+      <section>
+        <h2>Señales de IA por conversación</h2>
+        {% if conversations %}
+        {% for item in conversations %}
+        <h3>{{ item.conversation.conversation_id }} · {{ item.conversation.channel or 'Sin canal' }} · {{ item.message_count }} mensajes</h3>
+        {% set fields = item.fields %}
+        {% if fields %}
+        <dl>
+          <dt>Intención de compra</dt><dd>{{ fields.intencion_compra or 'Desconocido' }}</dd>
+          <dt>Presupuesto</dt><dd>{{ fields.presupuesto if fields.presupuesto is not none else 'Desconocido' }}</dd>
+          <dt>Cuota inicial</dt><dd>{{ fields.cuota_inicial if fields.cuota_inicial is not none else 'Desconocido' }}</dd>
+          <dt>Forma de pago</dt><dd>{{ fields.forma_pago or 'Desconocido' }}</dd>
+          <dt>Objeción</dt><dd>{{ fields.objecion or 'Desconocido' }}</dd>
+          <dt>Solicitó cita</dt><dd>{{ bool_label(fields.solicitud_cita) }}</dd>
+          <dt>Solicitó cotización</dt><dd>{{ bool_label(fields.solicitud_cotizacion) }}</dd>
+        </dl>
+        {% else %}
+        <p class="unknown">Sin extracción IA vigente para esta conversación.</p>
+        {% endif %}
+        {% endfor %}
+        {% else %}
+        <p class="unknown">Este lead no tiene conversaciones registradas.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

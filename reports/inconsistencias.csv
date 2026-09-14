@@ -1,0 +1,36 @@
+id,dataset,campo,tipo,clasificacion,n_afectados,descripcion
+Q01,leads,lead_id,duplicados,Corregible automáticamente,2,Filas completamente duplicadas (mismo lead_id y mismos valores).
+Q02,leads,canal,formatos,Corregible automáticamente,255,El mismo canal aparece con mayúsculas/minúsculas distintas.
+Q03,leads,estado_gestion,formatos,Corregible automáticamente,281,El mismo estado aparece con mayúsculas/minúsculas distintas.
+Q04,leads,fecha_registro / fecha_primer_contacto,fechas,Requiere regla de negocio,265,Fechas con barra realmente ambiguas entre DD/MM/YYYY y MM/DD/YYYY (día y mes <= 12); no se pueden resolver sin regla.
+Q05,leads,fecha_registro,fechas,Corregible automáticamente,974,"Formatos de fecha mezclados (ISO-T, ISO con espacio, DD-MM-YYYY)."
+Q06,leads,fecha_primer_contacto,integridad,Requiere revisión humana,29,fecha_primer_contacto anterior a fecha_registro.
+Q07,leads,telefono,formatos,Corregible automáticamente,847,"Teléfonos con espacios, guiones, paréntesis y prefijo 57/+57."
+Q08,leads,telefono,valores_invalidos,Requiere revisión humana,1,Teléfonos con longitud distinta a 10-12 dígitos.
+Q09,leads,telefono,duplicados,Requiere regla de negocio,140,Teléfono normalizado compartido por más de un lead_id (280 leads involucrados).
+Q10,leads,email,valores_faltantes,Requiere regla de negocio,700,Email faltante en 46.57% de los leads.
+Q11,leads,email,duplicados,Requiere revisión humana,1,Email repetido entre leads distintos.
+Q12,leads,ciudad,formatos,Corregible automáticamente,25,"Ciudades con variantes de mayúsculas/acentos y abreviaturas (Bogotá D.C., Sta Marta, B/quilla...)."
+Q13,leads,ciudad,valores_faltantes,Requiere regla de negocio,79,Ciudad faltante.
+Q14,leads,modelo_interes_texto,formatos,Requiere regla de negocio,115,Modelo escrito solo como marca o de forma parcial/ambigua (no permite elegir un SKU único).
+Q15,leads,modelo_interes_texto,formatos,Corregible automáticamente,1308,"Modelo con typos de marca (Bajai, Hnda, Heroo, Suzuky), formato A.K.T y sufijo de año; normalizables a un SKU."
+Q16,leads,modelo_interes_texto,valores_faltantes,Requiere regla de negocio,80,Modelo de interés faltante.
+Q17,leads,campania,valores_faltantes,Debe conservarse como dato original,434,Campaña no informada; se conserva como ausencia.
+Q18,leads,fecha_primer_contacto,integridad,Requiere regla de negocio,86,Leads con estado de gestión distinto de 'Sin gestión' pero sin fecha_primer_contacto.
+Q19,leads,fecha_registro / fecha_primer_contacto,fechas,Requiere revisión humana,1,Valores de fecha con formato no reconocible (p. ej. día imposible).
+Q20,leads,canal,valores_faltantes,Requiere regla de negocio,1,Canal vacío: no se puede asignar a una fuente de adquisición.
+Q21,leads,nombre_cliente,formatos,Corregible automáticamente,281,Nombres con espacios sobrantes y mezcla de mayúsculas/minúsculas.
+Q22,leads,nombre_cliente / telefono,duplicados,Requiere regla de negocio,93,Posibles clientes repetidos (nombre normalizado + teléfono normalizado iguales).
+R01,todos,punto_venta_id / empresa_id,referencias,Debe conservarse como dato original,0,Sin referencias a puntos de venta inexistentes ni combinaciones empresa/punto incoherentes entre datasets.
+R02,catalogo_motos,puntos_venta_disponibles,referencias,Debe conservarse como dato original,0,Todos los puntos de venta del catálogo existen en asesores.csv.
+R03,leads / historico_cierres,lead_id,llave_compartida,Requiere regla de negocio,0,La intersección de lead_id entre leads (LD-) e histórico (HX-) es cero: no se pueden unir directamente.
+C01,conversaciones,lead_id,referencia_rota,Requiere revisión humana,12,Conversaciones cuyo lead_id no existe en leads.csv (IDs fuera del rango LD-00001..LD-01501).
+C02,conversaciones,lead_id,duplicados,Requiere regla de negocio,25,lead_id con más de una conversación. No es posible decidir sin regla si son sesiones distintas o duplicados.
+C03,leads,lead_id,cobertura,Debe conservarse como dato original,861,Leads sin conversación asociada. Coherente con que solo WhatsApp tiene transcripción.
+H01,historico_cierres,horas_al_primer_contacto,data_leakage,Requiere regla de negocio,179,Nulo exactamente cuando desenlace='Sin gestión'. Usar o imputar esta variable fuga la etiqueta.
+H02,historico_cierres,numero_contactos,data_leakage,Requiere regla de negocio,179,Valor 0 exactamente cuando desenlace='Sin gestión'. Se comporta como consecuencia del desenlace.
+H03,historico_cierres,desenlace,desbalance_clases,Debe conservarse como dato original,197,Clase minoritaria 'Cerrado' = 197 de 2200 (8.95%).
+K01,catalogo_motos / historico_cierres,modelo_cotizado / marca+linea,consistencia,Debe conservarse como dato original,0,No se detectaron modelos de histórico fuera del catálogo (marca + línea).
+K02,catalogo_motos / historico_cierres,precio_lista,consistencia,Debe conservarse como dato original,0,No se detectaron precios del histórico distintos del precio de catálogo.
+A01,asesores,activo,estado,Debe conservarse como dato original,2,Asesores inactivos; todos los puntos de venta conservan al menos un asesor activo.
+A02,asesores,punto_venta_id / empresa_id,referencias,Debe conservarse como dato original,0,No se detectaron referencias inválidas ni combinaciones empresa/punto de venta incoherentes.

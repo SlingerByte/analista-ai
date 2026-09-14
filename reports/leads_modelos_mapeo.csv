@@ -1,0 +1,191 @@
+modelo_interes_texto,tipo_match,skus_candidatos
+A.K.T Dynamic R3 125,directo,SKU-018
+A.K.T Evo RS 150,directo,SKU-020
+A.K.T NKD 125,directo,SKU-017
+A.K.T TTR 200,directo,SKU-019
+AKT,solo_marca,
+AKT  Dynamic R3 125,directo,SKU-018
+AKT  Evo RS 150,directo,SKU-020
+AKT  NKD 125,directo,SKU-017
+AKT  TTR 200,directo,SKU-019
+AKT DYNAMIC R3 125,directo,SKU-018
+AKT Dynamic,prefijo_unico,SKU-018
+AKT Dynamic R3 125,directo,SKU-018
+AKT Dynamic R3 125 2026,directo,SKU-018
+AKT EVO RS 150,directo,SKU-020
+AKT Evo,prefijo_unico,SKU-020
+AKT Evo RS 150,directo,SKU-020
+AKT Evo RS 150 2026,directo,SKU-020
+AKT NKD,prefijo_unico,SKU-017
+AKT NKD 125,directo,SKU-017
+AKT NKD 125 2026,directo,SKU-017
+AKT TTR,prefijo_unico,SKU-019
+AKT TTR 200,directo,SKU-019
+AKT TTR 200 2026,directo,SKU-019
+BAJAJ BOXER CT 100,directo,SKU-007
+BAJAJ DISCOVER 125,directo,SKU-012
+BAJAJ DOMINAR 400,directo,SKU-011
+BAJAJ PULSAR NS 125,directo,SKU-008
+BAJAJ PULSAR NS 160,directo,SKU-009
+BAJAJ PULSAR RS 200,directo,SKU-010
+Bajai Boxer CT 100,directo,SKU-007
+Bajai Discover 125,directo,SKU-012
+Bajai Dominar 400,directo,SKU-011
+Bajai Pulsar NS 125,directo,SKU-008
+Bajai Pulsar NS 160,directo,SKU-009
+Bajai Pulsar RS 200,directo,SKU-010
+Bajaj,solo_marca,
+Bajaj  Boxer CT 100,directo,SKU-007
+Bajaj  Discover 125,directo,SKU-012
+Bajaj  Dominar 400,directo,SKU-011
+Bajaj  Pulsar NS 125,directo,SKU-008
+Bajaj  Pulsar NS 160,directo,SKU-009
+Bajaj  Pulsar RS 200,directo,SKU-010
+Bajaj Boxer,prefijo_unico,SKU-007
+Bajaj Boxer CT 100,directo,SKU-007
+Bajaj Boxer CT 100 2026,directo,SKU-007
+Bajaj Discover,prefijo_unico,SKU-012
+Bajaj Discover 125,directo,SKU-012
+Bajaj Discover 125 2026,directo,SKU-012
+Bajaj Dominar,prefijo_unico,SKU-011
+Bajaj Dominar 400,directo,SKU-011
+Bajaj Dominar 400 2026,directo,SKU-011
+Bajaj Pulsar,prefijo_ambiguo,SKU-008|SKU-009|SKU-010
+Bajaj Pulsar NS 125,directo,SKU-008
+Bajaj Pulsar NS 125 2026,directo,SKU-008
+Bajaj Pulsar NS 160,directo,SKU-009
+Bajaj Pulsar NS 160 2026,directo,SKU-009
+Bajaj Pulsar RS 200,directo,SKU-010
+Bajaj Pulsar RS 200 2026,directo,SKU-010
+Best 125,directo,SKU-016
+Boxer CT 100,directo,SKU-007
+CB 125F Twister,directo,SKU-001
+CB 190R,directo,SKU-003
+Dash 110,directo,SKU-024
+Dio 110,directo,SKU-005
+Discover 125,directo,SKU-012
+Dominar 400,directo,SKU-011
+Dynamic R3 125,directo,SKU-018
+Eco Deluxe 100,directo,SKU-021
+Evo RS 150,directo,SKU-020
+GN 125,directo,SKU-013
+Gixxer 150,directo,SKU-014
+HERO DASH 110,directo,SKU-024
+HERO ECO DELUXE 100,directo,SKU-021
+HERO HUNK 160R,directo,SKU-022
+HERO XPULSE 200,directo,SKU-023
+HONDA CB 125F TWISTER,directo,SKU-001
+HONDA CB 190R,directo,SKU-003
+HONDA DIO 110,directo,SKU-005
+HONDA NAVI,directo,SKU-004
+HONDA XR 150L,directo,SKU-002
+HONDA XRE 300,directo,SKU-006
+Hero,solo_marca,
+Hero  Dash 110,directo,SKU-024
+Hero  Eco Deluxe 100,directo,SKU-021
+Hero  Hunk 160R,directo,SKU-022
+Hero  Xpulse 200,directo,SKU-023
+Hero Dash,prefijo_unico,SKU-024
+Hero Dash 110,directo,SKU-024
+Hero Dash 110 2026,directo,SKU-024
+Hero Eco,prefijo_unico,SKU-021
+Hero Eco Deluxe 100,directo,SKU-021
+Hero Eco Deluxe 100 2026,directo,SKU-021
+Hero Hunk,prefijo_unico,SKU-022
+Hero Hunk 160R,directo,SKU-022
+Hero Hunk 160R 2026,directo,SKU-022
+Hero Xpulse,prefijo_unico,SKU-023
+Hero Xpulse 200,directo,SKU-023
+Hero Xpulse 200 2026,directo,SKU-023
+Heroo Dash 110,directo,SKU-024
+Heroo Eco Deluxe 100,directo,SKU-021
+Heroo Hunk 160R,directo,SKU-022
+Heroo Xpulse 200,directo,SKU-023
+Hnda CB 125F Twister,directo,SKU-001
+Hnda CB 190R,directo,SKU-003
+Hnda Dio 110,directo,SKU-005
+Hnda Navi,directo,SKU-004
+Hnda XR 150L,directo,SKU-002
+Hnda XRE 300,directo,SKU-006
+Honda,solo_marca,
+Honda  CB 125F Twister,directo,SKU-001
+Honda  CB 190R,directo,SKU-003
+Honda  Dio 110,directo,SKU-005
+Honda  Navi,directo,SKU-004
+Honda  XR 150L,directo,SKU-002
+Honda  XRE 300,directo,SKU-006
+Honda CB,prefijo_ambiguo,SKU-001|SKU-003
+Honda CB 125F Twister,directo,SKU-001
+Honda CB 125F Twister 2026,directo,SKU-001
+Honda CB 190R,directo,SKU-003
+Honda CB 190R 2026,directo,SKU-003
+Honda Dio,prefijo_unico,SKU-005
+Honda Dio 110,directo,SKU-005
+Honda Dio 110 2026,directo,SKU-005
+Honda Navi,directo,SKU-004
+Honda Navi 2026,directo,SKU-004
+Honda XR,prefijo_ambiguo,SKU-002|SKU-006
+Honda XR 150L,directo,SKU-002
+Honda XR 150L 2026,directo,SKU-002
+Honda XRE,prefijo_unico,SKU-006
+Honda XRE 300,directo,SKU-006
+Honda XRE 300 2026,directo,SKU-006
+Hunk 160R,directo,SKU-022
+NKD 125,directo,SKU-017
+Navi,directo,SKU-004
+Pulsar NS 125,directo,SKU-008
+Pulsar NS 160,directo,SKU-009
+Pulsar RS 200,directo,SKU-010
+SUZUKI BEST 125,directo,SKU-016
+SUZUKI GIXXER 150,directo,SKU-014
+SUZUKI GN 125,directo,SKU-013
+SUZUKI V-STROM 250,directo,SKU-015
+Suzuki,solo_marca,
+Suzuki  Best 125,directo,SKU-016
+Suzuki  GN 125,directo,SKU-013
+Suzuki  Gixxer 150,directo,SKU-014
+Suzuki  V-Strom 250,directo,SKU-015
+Suzuki Best,prefijo_unico,SKU-016
+Suzuki Best 125,directo,SKU-016
+Suzuki Best 125 2026,directo,SKU-016
+Suzuki GN,prefijo_unico,SKU-013
+Suzuki GN 125,directo,SKU-013
+Suzuki GN 125 2026,directo,SKU-013
+Suzuki Gixxer,prefijo_unico,SKU-014
+Suzuki Gixxer 150,directo,SKU-014
+Suzuki Gixxer 150 2026,directo,SKU-014
+Suzuki V-Strom,prefijo_unico,SKU-015
+Suzuki V-Strom 250,directo,SKU-015
+Suzuki V-Strom 250 2026,directo,SKU-015
+Suzuky GN 125,directo,SKU-013
+Suzuky Gixxer 150,directo,SKU-014
+Suzuky V-Strom 250,directo,SKU-015
+TTR 200,directo,SKU-019
+V-Strom 250,directo,SKU-015
+XR 150L,directo,SKU-002
+XRE 300,directo,SKU-006
+Xpulse 200,directo,SKU-023
+akt dynamic r3 125,directo,SKU-018
+akt evo rs 150,directo,SKU-020
+akt nkd 125,directo,SKU-017
+akt ttr 200,directo,SKU-019
+bajaj boxer ct 100,directo,SKU-007
+bajaj discover 125,directo,SKU-012
+bajaj dominar 400,directo,SKU-011
+bajaj pulsar ns 125,directo,SKU-008
+bajaj pulsar ns 160,directo,SKU-009
+bajaj pulsar rs 200,directo,SKU-010
+hero dash 110,directo,SKU-024
+hero eco deluxe 100,directo,SKU-021
+hero hunk 160r,directo,SKU-022
+hero xpulse 200,directo,SKU-023
+honda cb 125f twister,directo,SKU-001
+honda cb 190r,directo,SKU-003
+honda dio 110,directo,SKU-005
+honda navi,directo,SKU-004
+honda xr 150l,directo,SKU-002
+honda xre 300,directo,SKU-006
+suzuki best 125,directo,SKU-016
+suzuki gixxer 150,directo,SKU-014
+suzuki gn 125,directo,SKU-013
+suzuki v-strom 250,directo,SKU-015

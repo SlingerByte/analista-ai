@@ -1,0 +1,4728 @@
+{
+  "generado": "2026-09-14T10:38:56",
+  "python": "3.10.11",
+  "solo_lectura": true,
+  "archivos": {
+    "leads": {
+      "ruta": "data/leads.csv",
+      "bytes": 250658,
+      "sha256": "b95c10b3106bc8f4b4a0d343f1e159e20df861fdd909b87fbd07c7dcf654bc2d"
+    },
+    "catalogo_motos": {
+      "ruta": "data/catalogo_motos.csv",
+      "bytes": 2568,
+      "sha256": "1388ffa40ce57e51284aac0f79d0ad025f944baafa86ae4b4d714d75fa66f0ec"
+    },
+    "asesores": {
+      "ruta": "data/asesores.csv",
+      "bytes": 2807,
+      "sha256": "55db5ae9a36cce6f338953e5edbf5a4760cafacd0bca578293251669679b6bb9"
+    },
+    "historico_cierres": {
+      "ruta": "data/historico_cierres.csv",
+      "bytes": 218954,
+      "sha256": "ce8e7fd93c3e00368c95e12b4a41f79c322951bd02b4f3608b962ee85682b244"
+    },
+    "conversaciones": {
+      "ruta": "data/conversaciones.json",
+      "bytes": 688512,
+      "sha256": "e5f76c5548e7a432e9690251ffaccc4a55a5bd1f9f787883d282a5126eafb498"
+    }
+  },
+  "estructura": {
+    "leads.csv": {
+      "registros": 1503,
+      "columnas": [
+        "lead_id",
+        "fecha_registro",
+        "canal",
+        "empresa_id",
+        "punto_venta_id",
+        "nombre_cliente",
+        "telefono",
+        "email",
+        "ciudad",
+        "modelo_interes_texto",
+        "estado_gestion",
+        "fecha_primer_contacto",
+        "campania"
+      ],
+      "perfil_columnas": [
+        {
+          "columna": "lead_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 1501,
+          "top_valores": [
+            [
+              "LD-00011",
+              2
+            ],
+            [
+              "LD-00251",
+              2
+            ],
+            [
+              "LD-00001",
+              1
+            ],
+            [
+              "LD-00002",
+              1
+            ],
+            [
+              "LD-00003",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "LD-00011",
+            "LD-00251",
+            "LD-00001",
+            "LD-00002",
+            "LD-00003"
+          ]
+        },
+        {
+          "columna": "fecha_registro",
+          "tipo_inferido": "fecha",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 1319,
+          "top_valores": [
+            [
+              "09-08-2026",
+              12
+            ],
+            [
+              "31-08-2026",
+              12
+            ],
+            [
+              "04-08-2026",
+              8
+            ],
+            [
+              "12-08-2026",
+              8
+            ],
+            [
+              "11-08-2026",
+              8
+            ]
+          ],
+          "ejemplos": [
+            "09-08-2026",
+            "31-08-2026",
+            "04-08-2026",
+            "12-08-2026",
+            "11-08-2026"
+          ]
+        },
+        {
+          "columna": "canal",
+          "tipo_inferido": "texto",
+          "nulos": 1,
+          "pct_nulos": 0.07,
+          "valores_unicos": 9,
+          "top_valores": [
+            [
+              "WhatsApp",
+              689
+            ],
+            [
+              "Meta Ads",
+              384
+            ],
+            [
+              "Formulario Web",
+              174
+            ],
+            [
+              "WHATSAPP",
+              68
+            ],
+            [
+              "whatsapp",
+              67
+            ]
+          ],
+          "ejemplos": [
+            "WhatsApp",
+            "Meta Ads",
+            "Formulario Web",
+            "WHATSAPP",
+            "whatsapp"
+          ]
+        },
+        {
+          "columna": "empresa_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "EMP-02",
+              514
+            ],
+            [
+              "EMP-01",
+              495
+            ],
+            [
+              "EMP-03",
+              494
+            ]
+          ],
+          "ejemplos": [
+            "EMP-02",
+            "EMP-01",
+            "EMP-03"
+          ]
+        },
+        {
+          "columna": "punto_venta_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 15,
+          "top_valores": [
+            [
+              "PV-008",
+              117
+            ],
+            [
+              "PV-014",
+              113
+            ],
+            [
+              "PV-003",
+              111
+            ],
+            [
+              "PV-006",
+              109
+            ],
+            [
+              "PV-009",
+              105
+            ]
+          ],
+          "ejemplos": [
+            "PV-008",
+            "PV-014",
+            "PV-003",
+            "PV-006",
+            "PV-009"
+          ]
+        },
+        {
+          "columna": "nombre_cliente",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 1442,
+          "top_valores": [
+            [
+              "Nelson Rodríguez Castaño",
+              3
+            ],
+            [
+              "Marcela Muñoz Valencia",
+              2
+            ],
+            [
+              "Luisa Betancur Torres",
+              2
+            ],
+            [
+              "Sandra Milena Cardona Hernández",
+              2
+            ],
+            [
+              "Mónica Jiménez Cardona",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "Nelson Rodríguez Castaño",
+            "Marcela Muñoz Valencia",
+            "Luisa Betancur Torres",
+            "Sandra Milena Cardona Hernández",
+            "Mónica Jiménez Cardona"
+          ]
+        },
+        {
+          "columna": "telefono",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 1466,
+          "top_valores": [
+            [
+              "315 229 3701",
+              2
+            ],
+            [
+              "3176036920",
+              2
+            ],
+            [
+              "3169663345",
+              2
+            ],
+            [
+              "3151024673",
+              2
+            ],
+            [
+              "3230031702",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "315 229 3701",
+            "3176036920",
+            "3169663345",
+            "3151024673",
+            "3230031702"
+          ]
+        },
+        {
+          "columna": "email",
+          "tipo_inferido": "texto",
+          "nulos": 700,
+          "pct_nulos": 46.57,
+          "valores_unicos": 802,
+          "top_valores": [
+            [
+              "marcela.munoz15@yahoo.es",
+              2
+            ],
+            [
+              "claudia.agudelo22@hotmail.com",
+              1
+            ],
+            [
+              "marcela.munoz3@yahoo.es",
+              1
+            ],
+            [
+              "yuliana.castano97@outlook.com",
+              1
+            ],
+            [
+              "marcela.londono94@outlook.com",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "marcela.munoz15@yahoo.es",
+            "claudia.agudelo22@hotmail.com",
+            "marcela.munoz3@yahoo.es",
+            "yuliana.castano97@outlook.com",
+            "marcela.londono94@outlook.com"
+          ]
+        },
+        {
+          "columna": "ciudad",
+          "tipo_inferido": "texto",
+          "nulos": 79,
+          "pct_nulos": 5.26,
+          "valores_unicos": 36,
+          "top_valores": [
+            [
+              "Medellín",
+              72
+            ],
+            [
+              "Bogotá D.C.",
+              70
+            ],
+            [
+              "Bogotá",
+              68
+            ],
+            [
+              "Bogota",
+              67
+            ],
+            [
+              "BOGOTA",
+              60
+            ]
+          ],
+          "ejemplos": [
+            "Medellín",
+            "Bogotá D.C.",
+            "Bogotá",
+            "Bogota",
+            "BOGOTA"
+          ]
+        },
+        {
+          "columna": "modelo_interes_texto",
+          "tipo_inferido": "texto",
+          "nulos": 80,
+          "pct_nulos": 5.32,
+          "valores_unicos": 190,
+          "top_valores": [
+            [
+              "Honda Navi",
+              34
+            ],
+            [
+              "Bajaj Boxer CT 100",
+              29
+            ],
+            [
+              "Bajaj",
+              28
+            ],
+            [
+              "Honda Dio 110",
+              25
+            ],
+            [
+              "Suzuki V-Strom 250",
+              23
+            ]
+          ],
+          "ejemplos": [
+            "Honda Navi",
+            "Bajaj Boxer CT 100",
+            "Bajaj",
+            "Honda Dio 110",
+            "Suzuki V-Strom 250"
+          ]
+        },
+        {
+          "columna": "estado_gestion",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 10,
+          "top_valores": [
+            [
+              "Contactado",
+              285
+            ],
+            [
+              "Sin gestión",
+              258
+            ],
+            [
+              "Cotización enviada",
+              202
+            ],
+            [
+              "En proceso",
+              178
+            ],
+            [
+              "No contesta",
+              150
+            ]
+          ],
+          "ejemplos": [
+            "Contactado",
+            "Sin gestión",
+            "Cotización enviada",
+            "En proceso",
+            "No contesta"
+          ]
+        },
+        {
+          "columna": "fecha_primer_contacto",
+          "tipo_inferido": "fecha",
+          "nulos": 487,
+          "pct_nulos": 32.4,
+          "valores_unicos": 848,
+          "top_valores": [
+            [
+              "26-08-2026",
+              10
+            ],
+            [
+              "25-08-2026",
+              9
+            ],
+            [
+              "07-09-2026",
+              9
+            ],
+            [
+              "27-08-2026",
+              8
+            ],
+            [
+              "31-08-2026",
+              8
+            ]
+          ],
+          "ejemplos": [
+            "26-08-2026",
+            "25-08-2026",
+            "07-09-2026",
+            "27-08-2026",
+            "31-08-2026"
+          ]
+        },
+        {
+          "columna": "campania",
+          "tipo_inferido": "texto",
+          "nulos": 434,
+          "pct_nulos": 28.88,
+          "valores_unicos": 5,
+          "top_valores": [
+            [
+              "Feria de Motos 2026",
+              234
+            ],
+            [
+              "Agosto Cero Cuotas",
+              219
+            ],
+            [
+              "Prima Extra",
+              211
+            ],
+            [
+              "Remate Modelos 2025",
+              204
+            ],
+            [
+              "Retoma tu moto",
+              201
+            ]
+          ],
+          "ejemplos": [
+            "Feria de Motos 2026",
+            "Agosto Cero Cuotas",
+            "Prima Extra",
+            "Remate Modelos 2025",
+            "Retoma tu moto"
+          ]
+        }
+      ]
+    },
+    "catalogo_motos.csv": {
+      "registros": 24,
+      "columnas": [
+        "sku",
+        "marca",
+        "linea",
+        "cilindraje",
+        "segmento",
+        "precio_lista",
+        "puntos_venta_disponibles",
+        "unidades_disponibles"
+      ],
+      "perfil_columnas": [
+        {
+          "columna": "sku",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "SKU-001",
+              1
+            ],
+            [
+              "SKU-002",
+              1
+            ],
+            [
+              "SKU-003",
+              1
+            ],
+            [
+              "SKU-004",
+              1
+            ],
+            [
+              "SKU-005",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "SKU-001",
+            "SKU-002",
+            "SKU-003",
+            "SKU-004",
+            "SKU-005"
+          ]
+        },
+        {
+          "columna": "marca",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 5,
+          "top_valores": [
+            [
+              "Honda",
+              6
+            ],
+            [
+              "Bajaj",
+              6
+            ],
+            [
+              "Suzuki",
+              4
+            ],
+            [
+              "AKT",
+              4
+            ],
+            [
+              "Hero",
+              4
+            ]
+          ],
+          "ejemplos": [
+            "Honda",
+            "Bajaj",
+            "Suzuki",
+            "AKT",
+            "Hero"
+          ]
+        },
+        {
+          "columna": "linea",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "CB 125F Twister",
+              1
+            ],
+            [
+              "XR 150L",
+              1
+            ],
+            [
+              "CB 190R",
+              1
+            ],
+            [
+              "Navi",
+              1
+            ],
+            [
+              "Dio 110",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "CB 125F Twister",
+            "XR 150L",
+            "CB 190R",
+            "Navi",
+            "Dio 110"
+          ]
+        },
+        {
+          "columna": "cilindraje",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 14,
+          "top_valores": [
+            [
+              "125",
+              4
+            ],
+            [
+              "110",
+              3
+            ],
+            [
+              "124",
+              3
+            ],
+            [
+              "150",
+              2
+            ],
+            [
+              "100",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "125",
+            "110",
+            "124",
+            "150",
+            "100"
+          ]
+        },
+        {
+          "columna": "segmento",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 5,
+          "top_valores": [
+            [
+              "Trabajo",
+              7
+            ],
+            [
+              "Deportiva",
+              7
+            ],
+            [
+              "Doble propósito",
+              4
+            ],
+            [
+              "Scooter",
+              4
+            ],
+            [
+              "Turismo",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "Trabajo",
+            "Deportiva",
+            "Doble propósito",
+            "Scooter",
+            "Turismo"
+          ]
+        },
+        {
+          "columna": "precio_lista",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "7990000",
+              1
+            ],
+            [
+              "11490000",
+              1
+            ],
+            [
+              "13990000",
+              1
+            ],
+            [
+              "7290000",
+              1
+            ],
+            [
+              "6890000",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "7990000",
+            "11490000",
+            "13990000",
+            "7290000",
+            "6890000"
+          ]
+        },
+        {
+          "columna": "puntos_venta_disponibles",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "PV-001|PV-003|PV-006|PV-007|PV-008|PV-009|PV-010|PV-011|PV-015",
+              1
+            ],
+            [
+              "PV-002|PV-004|PV-012|PV-015",
+              1
+            ],
+            [
+              "PV-001|PV-004|PV-005|PV-008|PV-012|PV-014|PV-015",
+              1
+            ],
+            [
+              "PV-002|PV-008|PV-012",
+              1
+            ],
+            [
+              "PV-001|PV-002|PV-003|PV-004|PV-006|PV-008|PV-009|PV-010|PV-012|PV-013|PV-014",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "PV-001|PV-003|PV-006|PV-007|PV-008|PV-009|PV-010|PV-011|PV-015",
+            "PV-002|PV-004|PV-012|PV-015",
+            "PV-001|PV-004|PV-005|PV-008|PV-012|PV-014|PV-015",
+            "PV-002|PV-008|PV-012",
+            "PV-001|PV-002|PV-003|PV-004|PV-006|PV-008|PV-009|PV-010|PV-012|PV-013|PV-014"
+          ]
+        },
+        {
+          "columna": "unidades_disponibles",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 16,
+          "top_valores": [
+            [
+              "12",
+              3
+            ],
+            [
+              "10",
+              2
+            ],
+            [
+              "18",
+              2
+            ],
+            [
+              "15",
+              2
+            ],
+            [
+              "14",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "12",
+            "10",
+            "18",
+            "15",
+            "14"
+          ]
+        }
+      ]
+    },
+    "asesores.csv": {
+      "registros": 42,
+      "columnas": [
+        "asesor_id",
+        "nombre",
+        "punto_venta_id",
+        "empresa_id",
+        "capacidad_diaria_leads",
+        "activo",
+        "fecha_ingreso"
+      ],
+      "perfil_columnas": [
+        {
+          "columna": "asesor_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 42,
+          "top_valores": [
+            [
+              "AS-001",
+              1
+            ],
+            [
+              "AS-002",
+              1
+            ],
+            [
+              "AS-003",
+              1
+            ],
+            [
+              "AS-004",
+              1
+            ],
+            [
+              "AS-005",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "AS-001",
+            "AS-002",
+            "AS-003",
+            "AS-004",
+            "AS-005"
+          ]
+        },
+        {
+          "columna": "nombre",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 42,
+          "top_valores": [
+            [
+              "Édinson Mosquera Pérez",
+              1
+            ],
+            [
+              "Andrés Felipe Bedoya Salazar",
+              1
+            ],
+            [
+              "Sebastián Mosquera Rodríguez",
+              1
+            ],
+            [
+              "Sebastián Cardona Londoño",
+              1
+            ],
+            [
+              "Luisa Ospina Vargas",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "Édinson Mosquera Pérez",
+            "Andrés Felipe Bedoya Salazar",
+            "Sebastián Mosquera Rodríguez",
+            "Sebastián Cardona Londoño",
+            "Luisa Ospina Vargas"
+          ]
+        },
+        {
+          "columna": "punto_venta_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 15,
+          "top_valores": [
+            [
+              "PV-001",
+              4
+            ],
+            [
+              "PV-002",
+              4
+            ],
+            [
+              "PV-003",
+              4
+            ],
+            [
+              "PV-011",
+              4
+            ],
+            [
+              "PV-012",
+              4
+            ]
+          ],
+          "ejemplos": [
+            "PV-001",
+            "PV-002",
+            "PV-003",
+            "PV-011",
+            "PV-012"
+          ]
+        },
+        {
+          "columna": "empresa_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "EMP-01",
+              16
+            ],
+            [
+              "EMP-03",
+              14
+            ],
+            [
+              "EMP-02",
+              12
+            ]
+          ],
+          "ejemplos": [
+            "EMP-01",
+            "EMP-03",
+            "EMP-02"
+          ]
+        },
+        {
+          "columna": "capacidad_diaria_leads",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 5,
+          "top_valores": [
+            [
+              "20",
+              10
+            ],
+            [
+              "15",
+              10
+            ],
+            [
+              "12",
+              9
+            ],
+            [
+              "18",
+              8
+            ],
+            [
+              "25",
+              5
+            ]
+          ],
+          "ejemplos": [
+            "20",
+            "15",
+            "12",
+            "18",
+            "25"
+          ]
+        },
+        {
+          "columna": "activo",
+          "tipo_inferido": "booleano",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 2,
+          "top_valores": [
+            [
+              "SI",
+              40
+            ],
+            [
+              "NO",
+              2
+            ]
+          ],
+          "ejemplos": [
+            "SI",
+            "NO"
+          ]
+        },
+        {
+          "columna": "fecha_ingreso",
+          "tipo_inferido": "fecha",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 42,
+          "top_valores": [
+            [
+              "2026-02-27",
+              1
+            ],
+            [
+              "2025-02-10",
+              1
+            ],
+            [
+              "2024-02-24",
+              1
+            ],
+            [
+              "2024-01-18",
+              1
+            ],
+            [
+              "2024-03-08",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "2026-02-27",
+            "2025-02-10",
+            "2024-02-24",
+            "2024-01-18",
+            "2024-03-08"
+          ]
+        }
+      ]
+    },
+    "historico_cierres.csv": {
+      "registros": 2200,
+      "columnas": [
+        "lead_id",
+        "fecha_registro",
+        "canal",
+        "empresa_id",
+        "punto_venta_id",
+        "modelo_cotizado",
+        "precio_lista",
+        "horas_al_primer_contacto",
+        "numero_contactos",
+        "manifesto_cuota_inicial",
+        "forma_pago_declarada",
+        "pidio_cita",
+        "desenlace"
+      ],
+      "perfil_columnas": [
+        {
+          "columna": "lead_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 2200,
+          "top_valores": [
+            [
+              "HX-00001",
+              1
+            ],
+            [
+              "HX-00002",
+              1
+            ],
+            [
+              "HX-00003",
+              1
+            ],
+            [
+              "HX-00004",
+              1
+            ],
+            [
+              "HX-00005",
+              1
+            ]
+          ],
+          "ejemplos": [
+            "HX-00001",
+            "HX-00002",
+            "HX-00003",
+            "HX-00004",
+            "HX-00005"
+          ]
+        },
+        {
+          "columna": "fecha_registro",
+          "tipo_inferido": "fecha",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 150,
+          "top_valores": [
+            [
+              "2026-05-05",
+              25
+            ],
+            [
+              "2026-03-24",
+              25
+            ],
+            [
+              "2026-04-07",
+              23
+            ],
+            [
+              "2026-04-02",
+              23
+            ],
+            [
+              "2026-05-07",
+              22
+            ]
+          ],
+          "ejemplos": [
+            "2026-05-05",
+            "2026-03-24",
+            "2026-04-07",
+            "2026-04-02",
+            "2026-05-07"
+          ]
+        },
+        {
+          "columna": "canal",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "WhatsApp",
+              1206
+            ],
+            [
+              "Meta Ads",
+              670
+            ],
+            [
+              "Formulario Web",
+              324
+            ]
+          ],
+          "ejemplos": [
+            "WhatsApp",
+            "Meta Ads",
+            "Formulario Web"
+          ]
+        },
+        {
+          "columna": "empresa_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "EMP-01",
+              764
+            ],
+            [
+              "EMP-03",
+              723
+            ],
+            [
+              "EMP-02",
+              713
+            ]
+          ],
+          "ejemplos": [
+            "EMP-01",
+            "EMP-03",
+            "EMP-02"
+          ]
+        },
+        {
+          "columna": "punto_venta_id",
+          "tipo_inferido": "identificador",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 15,
+          "top_valores": [
+            [
+              "PV-001",
+              166
+            ],
+            [
+              "PV-015",
+              155
+            ],
+            [
+              "PV-008",
+              154
+            ],
+            [
+              "PV-005",
+              154
+            ],
+            [
+              "PV-004",
+              152
+            ]
+          ],
+          "ejemplos": [
+            "PV-001",
+            "PV-015",
+            "PV-008",
+            "PV-005",
+            "PV-004"
+          ]
+        },
+        {
+          "columna": "modelo_cotizado",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "Bajaj Pulsar NS 125",
+              113
+            ],
+            [
+              "Honda XR 150L",
+              111
+            ],
+            [
+              "Bajaj Pulsar RS 200",
+              108
+            ],
+            [
+              "Suzuki Gixxer 150",
+              100
+            ],
+            [
+              "Honda Dio 110",
+              99
+            ]
+          ],
+          "ejemplos": [
+            "Bajaj Pulsar NS 125",
+            "Honda XR 150L",
+            "Bajaj Pulsar RS 200",
+            "Suzuki Gixxer 150",
+            "Honda Dio 110"
+          ]
+        },
+        {
+          "columna": "precio_lista",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 24,
+          "top_valores": [
+            [
+              "8990000",
+              113
+            ],
+            [
+              "11490000",
+              111
+            ],
+            [
+              "15490000",
+              108
+            ],
+            [
+              "11990000",
+              100
+            ],
+            [
+              "6890000",
+              99
+            ]
+          ],
+          "ejemplos": [
+            "8990000",
+            "11490000",
+            "15490000",
+            "11990000",
+            "6890000"
+          ]
+        },
+        {
+          "columna": "horas_al_primer_contacto",
+          "tipo_inferido": "texto",
+          "nulos": 179,
+          "pct_nulos": 8.14,
+          "valores_unicos": 10,
+          "top_valores": [
+            [
+              "2",
+              247
+            ],
+            [
+              "4",
+              246
+            ],
+            [
+              "1",
+              240
+            ],
+            [
+              "48",
+              234
+            ],
+            [
+              "24",
+              217
+            ]
+          ],
+          "ejemplos": [
+            "2",
+            "4",
+            "1",
+            "48",
+            "24"
+          ]
+        },
+        {
+          "columna": "numero_contactos",
+          "tipo_inferido": "entero",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 8,
+          "top_valores": [
+            [
+              "5",
+              327
+            ],
+            [
+              "7",
+              307
+            ],
+            [
+              "6",
+              302
+            ],
+            [
+              "4",
+              286
+            ],
+            [
+              "3",
+              276
+            ]
+          ],
+          "ejemplos": [
+            "5",
+            "7",
+            "6",
+            "4",
+            "3"
+          ]
+        },
+        {
+          "columna": "manifesto_cuota_inicial",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "SI",
+              887
+            ],
+            [
+              "NO",
+              743
+            ],
+            [
+              "NO_INFORMA",
+              570
+            ]
+          ],
+          "ejemplos": [
+            "SI",
+            "NO",
+            "NO_INFORMA"
+          ]
+        },
+        {
+          "columna": "forma_pago_declarada",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "credito",
+              1392
+            ],
+            [
+              "no_informa",
+              435
+            ],
+            [
+              "contado",
+              373
+            ]
+          ],
+          "ejemplos": [
+            "credito",
+            "no_informa",
+            "contado"
+          ]
+        },
+        {
+          "columna": "pidio_cita",
+          "tipo_inferido": "booleano",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 2,
+          "top_valores": [
+            [
+              "NO",
+              1561
+            ],
+            [
+              "SI",
+              639
+            ]
+          ],
+          "ejemplos": [
+            "NO",
+            "SI"
+          ]
+        },
+        {
+          "columna": "desenlace",
+          "tipo_inferido": "texto",
+          "nulos": 0,
+          "pct_nulos": 0.0,
+          "valores_unicos": 3,
+          "top_valores": [
+            [
+              "Perdido",
+              1824
+            ],
+            [
+              "Cerrado",
+              197
+            ],
+            [
+              "Sin gestión",
+              179
+            ]
+          ],
+          "ejemplos": [
+            "Perdido",
+            "Cerrado",
+            "Sin gestión"
+          ]
+        }
+      ]
+    },
+    "conversaciones.json": {
+      "registros": 677,
+      "columnas": [
+        "canal",
+        "conversacion_id",
+        "fecha_inicio",
+        "lead_id",
+        "mensajes"
+      ],
+      "columnas_mensaje": [
+        "emisor",
+        "hora",
+        "texto"
+      ],
+      "mensajes_totales": 4310
+    }
+  },
+  "calidad": {
+    "duplicados_filas": {
+      "grupos_duplicados": 2,
+      "filas_duplicadas_extra": 2,
+      "ejemplos": [
+        "LD-00011",
+        "LD-00251"
+      ]
+    },
+    "duplicados_lead_id": {
+      "valores_duplicados": 2,
+      "detalle": {
+        "LD-00011": 2,
+        "LD-00251": 2
+      }
+    },
+    "canal": {
+      "valores_crudos": {
+        "": 1,
+        "FORMULARIO WEB": 26,
+        "Formulario Web": 174,
+        "META ADS": 36,
+        "Meta Ads": 384,
+        "WHATSAPP": 68,
+        "WhatsApp": 689,
+        "formulario web": 21,
+        "meta ads": 37,
+        "whatsapp": 67
+      },
+      "valores_normalizados": {
+        "Meta Ads": 457,
+        "Formulario Web": 221,
+        "WhatsApp": 824,
+        "None": 1
+      },
+      "variantes_redundantes": 255,
+      "vacios": 1
+    },
+    "estado_gestion": {
+      "valores_crudos": {
+        "Contactado": 285,
+        "Cotización enviada": 202,
+        "Descartado": 149,
+        "En proceso": 178,
+        "No contesta": 150,
+        "SIN GESTION": 44,
+        "Sin gestión": 258,
+        "contactado": 69,
+        "no contesta": 69,
+        "sin gestion": 99
+      },
+      "valores_normalizados": {
+        "Cotización enviada": 202,
+        "Descartado": 149,
+        "Contactado": 354,
+        "Sin gestión": 401,
+        "En proceso": 178,
+        "No contesta": 219
+      },
+      "variantes_redundantes": 4
+    },
+    "estado_contacto": {
+      "matriz": {
+        "Contactado|contacto=False": 25,
+        "Contactado|contacto=True": 329,
+        "Cotización enviada|contacto=False": 19,
+        "Cotización enviada|contacto=True": 183,
+        "Descartado|contacto=False": 10,
+        "Descartado|contacto=True": 139,
+        "En proceso|contacto=False": 14,
+        "En proceso|contacto=True": 164,
+        "No contesta|contacto=False": 18,
+        "No contesta|contacto=True": 201,
+        "Sin gestión|contacto=False": 401
+      },
+      "gestionados_sin_fecha": 86
+    },
+    "ciudades": {
+      "valores_crudos": {
+        "B/quilla": 31,
+        "BARRANQUILLA": 25,
+        "BELLO": 38,
+        "BOGOTA": 60,
+        "Barranquilla": 19,
+        "Bello": 31,
+        "Bogota": 67,
+        "Bogota DC": 54,
+        "Bogotá": 68,
+        "Bogotá D.C.": 70,
+        "CARTAGENA": 40,
+        "Cartagena": 38,
+        "Cartagena de Indias": 35,
+        "ITAGUI": 26,
+        "Itagui": 29,
+        "Itagüí": 33,
+        "MEDELLIN": 32,
+        "MONTERIA": 32,
+        "Medellin": 42,
+        "Medellín": 72,
+        "Monteria": 26,
+        "Montería": 37,
+        "RIONEGRO": 25,
+        "Rio Negro": 39,
+        "Rionegro": 30,
+        "SANTA MARTA": 38,
+        "SOACHA": 44,
+        "SOLEDAD": 32,
+        "Santa Marta": 32,
+        "Soacha": 46,
+        "Soledad": 46,
+        "Sta Marta": 29,
+        "barranquilla": 29,
+        "bello": 38,
+        "bogotá": 59,
+        "medellin": 32
+      },
+      "valores_normalizados": {
+        "barranquilla": 104,
+        "bello": 107,
+        "bogota": 378,
+        "cartagena": 113,
+        "itagui": 88,
+        "medellin": 178,
+        "monteria": 95,
+        "rionegro": 94,
+        "santa marta": 99,
+        "soacha": 90,
+        "soledad": 78
+      },
+      "vacios": 79,
+      "variantes_agrupadas": 25,
+      "alias_aplicados": {
+        "bogota d.c.": "bogota",
+        "bogota dc": "bogota",
+        "cartagena de indias": "cartagena",
+        "sta marta": "santa marta",
+        "rio negro": "rionegro",
+        "b/quilla": "barranquilla",
+        "itagui": "itagui"
+      }
+    },
+    "nombres": {
+      "con_espacios_extra": 281,
+      "en_mayusculas": 305,
+      "clientes_repetidos_nombre_telefono": 93,
+      "ejemplos": {
+        "wilmar castano rodriguez|3104824081": [
+          "LD-00001",
+          "LD-00284"
+        ],
+        "marcela munoz valencia|3152293701": [
+          "LD-00011",
+          "LD-00011"
+        ],
+        "luisa betancur torres|3226249985": [
+          "LD-00015",
+          "LD-01172"
+        ],
+        "alexander arias ospina|3022506559": [
+          "LD-00028",
+          "LD-00319"
+        ],
+        "cristian castano giraldo|3104983766": [
+          "LD-00037",
+          "LD-00907"
+        ]
+      }
+    },
+    "telefonos": {
+      "formatos": {
+        "separado_10": 394,
+        "plano_10": 656,
+        "prefijo_57_separado": 203,
+        "prefijo_57_sin_signo": 129,
+        "parentesis": 120,
+        "otro": 1
+      },
+      "invalidos": [
+        {
+          "lead_id": "LD-01501",
+          "telefono": "300123"
+        }
+      ],
+      "telefonos_compartidos": 140,
+      "leads_involucrados": 280,
+      "max_leads_por_telefono": 2,
+      "ejemplos_duplicados": {
+        "3104824081": [
+          "LD-00001",
+          "LD-00284"
+        ],
+        "3002859667": [
+          "LD-00004",
+          "LD-00052"
+        ],
+        "3226249985": [
+          "LD-00015",
+          "LD-01172"
+        ],
+        "3022506559": [
+          "LD-00028",
+          "LD-00319"
+        ],
+        "3176036920": [
+          "LD-00034",
+          "LD-01271"
+        ]
+      }
+    },
+    "emails": {
+      "presentes": 803,
+      "faltantes": 700,
+      "pct_faltantes": 46.57,
+      "invalidos": [],
+      "duplicados": {
+        "marcela.munoz15@yahoo.es": 2
+      }
+    },
+    "fechas": {
+      "fecha_registro": {
+        "formatos": {
+          "DD-MM-YYYY": 219,
+          "DD/MM/YYYY": 204,
+          "DD/MM/YYYY vs MM/DD/YYYY": 265,
+          "ISO_SPACE": 592,
+          "ISO_T": 163,
+          "MM/DD/YYYY": 59,
+          "desconocido": 1
+        },
+        "ambiguos_slash": 265,
+        "ambiguos_dash_convencion": 113,
+        "desconocidos": 1,
+        "valores_desconocidos": [
+          "2026-08-33 10:00:00"
+        ]
+      },
+      "fecha_primer_contacto": {
+        "formatos": {
+          "DD-MM-YYYY": 208,
+          "DD/MM/YYYY": 96,
+          "DD/MM/YYYY vs MM/DD/YYYY": 216,
+          "ISO_SPACE": 200,
+          "ISO_T": 203,
+          "MM/DD/YYYY": 93,
+          "vacio": 487
+        },
+        "ambiguos_slash": 216,
+        "ambiguos_dash_convencion": 107,
+        "desconocidos": 0,
+        "valores_desconocidos": []
+      }
+    },
+    "cronologia": {
+      "contacto_antes_de_registro": 29,
+      "entre_ellos_ambiguos": 424,
+      "no_comparables_por_formato": 0,
+      "ejemplos": [
+        {
+          "lead_id": "LD-00045",
+          "fecha_registro": "2026-08-27 05:24:00",
+          "fecha_primer_contacto": "27-08-2026"
+        },
+        {
+          "lead_id": "LD-00093",
+          "fecha_registro": "2026-08-31 06:54:00",
+          "fecha_primer_contacto": "31-08-2026"
+        },
+        {
+          "lead_id": "LD-00135",
+          "fecha_registro": "2026-08-24 17:38:00",
+          "fecha_primer_contacto": "24-08-2026"
+        },
+        {
+          "lead_id": "LD-00163",
+          "fecha_registro": "2026-08-26 06:48:00",
+          "fecha_primer_contacto": "26-08-2026"
+        },
+        {
+          "lead_id": "LD-00213",
+          "fecha_registro": "22/08/2026 12:01",
+          "fecha_primer_contacto": "22-08-2026"
+        }
+      ]
+    },
+    "modelos": {
+      "conteo_tipos": {
+        "directo_unico": 1245,
+        "vacio": 80,
+        "prefijo_unico": 63,
+        "solo_marca": 97,
+        "prefijo_ambiguo": 18
+      },
+      "valores_crudos_unicos": 190,
+      "sin_match": [],
+      "detalle": {
+        "A.K.T Dynamic R3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "A.K.T Evo RS 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "A.K.T NKD 125": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "A.K.T TTR 200": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "AKT": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "AKT  Dynamic R3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "AKT  Evo RS 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "AKT  NKD 125": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "AKT  TTR 200": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "AKT DYNAMIC R3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "AKT Dynamic": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "AKT Dynamic R3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "AKT Dynamic R3 125 2026": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "AKT EVO RS 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "AKT Evo": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "AKT Evo RS 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "AKT Evo RS 150 2026": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "AKT NKD": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "AKT NKD 125": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "AKT NKD 125 2026": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "AKT TTR": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "AKT TTR 200": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "AKT TTR 200 2026": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ BOXER CT 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ DISCOVER 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ DOMINAR 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ PULSAR NS 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ PULSAR NS 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "BAJAJ PULSAR RS 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Boxer CT 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Discover 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Dominar 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Pulsar NS 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Pulsar NS 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "Bajai Pulsar RS 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Bajaj  Boxer CT 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj  Discover 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj  Dominar 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj  Pulsar NS 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj  Pulsar NS 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj  Pulsar RS 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Boxer": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Bajaj Boxer CT 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Boxer CT 100 2026": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Discover": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Bajaj Discover 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Discover 125 2026": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Dominar": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Bajaj Dominar 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Dominar 400 2026": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar": {
+          "sku": [
+            "SKU-008",
+            "SKU-009",
+            "SKU-010"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Bajaj Pulsar NS 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar NS 125 2026": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar NS 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar NS 160 2026": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar RS 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "Bajaj Pulsar RS 200 2026": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "Best 125": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "Boxer CT 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "CB 125F Twister": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "CB 190R": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "Dash 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "Dio 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "Discover 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "Dominar 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "Dynamic R3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "Eco Deluxe 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "Evo RS 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "GN 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "Gixxer 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "HERO DASH 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "HERO ECO DELUXE 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "HERO HUNK 160R": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "HERO XPULSE 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA CB 125F TWISTER": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA CB 190R": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA DIO 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA NAVI": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA XR 150L": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "HONDA XRE 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Hero": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Hero  Dash 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "Hero  Eco Deluxe 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "Hero  Hunk 160R": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "Hero  Xpulse 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Dash": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Hero Dash 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Dash 110 2026": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Eco": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Hero Eco Deluxe 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Eco Deluxe 100 2026": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Hunk": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Hero Hunk 160R": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Hunk 160R 2026": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Xpulse": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Hero Xpulse 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "Hero Xpulse 200 2026": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "Heroo Dash 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "Heroo Eco Deluxe 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "Heroo Hunk 160R": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "Heroo Xpulse 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda CB 125F Twister": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda CB 190R": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda Dio 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda Navi": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda XR 150L": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "Hnda XRE 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Honda": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Honda  CB 125F Twister": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "Honda  CB 190R": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "Honda  Dio 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "Honda  Navi": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "Honda  XR 150L": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "Honda  XRE 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Honda CB": {
+          "sku": [
+            "SKU-001",
+            "SKU-003"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Honda CB 125F Twister": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "Honda CB 125F Twister 2026": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "Honda CB 190R": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "Honda CB 190R 2026": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "Honda Dio": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Honda Dio 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "Honda Dio 110 2026": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "Honda Navi": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "Honda Navi 2026": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "Honda XR": {
+          "sku": [
+            "SKU-002",
+            "SKU-006"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Honda XR 150L": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "Honda XR 150L 2026": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "Honda XRE": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Honda XRE 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Honda XRE 300 2026": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Hunk 160R": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "NKD 125": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "Navi": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "Pulsar NS 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "Pulsar NS 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "Pulsar RS 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "SUZUKI BEST 125": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "SUZUKI GIXXER 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "SUZUKI GN 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "SUZUKI V-STROM 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Suzuki  Best 125": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki  GN 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki  Gixxer 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki  V-Strom 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki Best": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Suzuki Best 125": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki Best 125 2026": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki GN": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Suzuki GN 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki GN 125 2026": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki Gixxer": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Suzuki Gixxer 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki Gixxer 150 2026": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki V-Strom": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "prefijo_unico"
+        },
+        "Suzuki V-Strom 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuki V-Strom 250 2026": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuky GN 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuky Gixxer 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "Suzuky V-Strom 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "TTR 200": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "V-Strom 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        },
+        "XR 150L": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "XRE 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "Xpulse 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "akt dynamic r3 125": {
+          "sku": [
+            "SKU-018"
+          ],
+          "tipo": "directo"
+        },
+        "akt evo rs 150": {
+          "sku": [
+            "SKU-020"
+          ],
+          "tipo": "directo"
+        },
+        "akt nkd 125": {
+          "sku": [
+            "SKU-017"
+          ],
+          "tipo": "directo"
+        },
+        "akt ttr 200": {
+          "sku": [
+            "SKU-019"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj boxer ct 100": {
+          "sku": [
+            "SKU-007"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj discover 125": {
+          "sku": [
+            "SKU-012"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj dominar 400": {
+          "sku": [
+            "SKU-011"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj pulsar ns 125": {
+          "sku": [
+            "SKU-008"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj pulsar ns 160": {
+          "sku": [
+            "SKU-009"
+          ],
+          "tipo": "directo"
+        },
+        "bajaj pulsar rs 200": {
+          "sku": [
+            "SKU-010"
+          ],
+          "tipo": "directo"
+        },
+        "hero dash 110": {
+          "sku": [
+            "SKU-024"
+          ],
+          "tipo": "directo"
+        },
+        "hero eco deluxe 100": {
+          "sku": [
+            "SKU-021"
+          ],
+          "tipo": "directo"
+        },
+        "hero hunk 160r": {
+          "sku": [
+            "SKU-022"
+          ],
+          "tipo": "directo"
+        },
+        "hero xpulse 200": {
+          "sku": [
+            "SKU-023"
+          ],
+          "tipo": "directo"
+        },
+        "honda cb 125f twister": {
+          "sku": [
+            "SKU-001"
+          ],
+          "tipo": "directo"
+        },
+        "honda cb 190r": {
+          "sku": [
+            "SKU-003"
+          ],
+          "tipo": "directo"
+        },
+        "honda dio 110": {
+          "sku": [
+            "SKU-005"
+          ],
+          "tipo": "directo"
+        },
+        "honda navi": {
+          "sku": [
+            "SKU-004"
+          ],
+          "tipo": "directo"
+        },
+        "honda xr 150l": {
+          "sku": [
+            "SKU-002"
+          ],
+          "tipo": "directo"
+        },
+        "honda xre 300": {
+          "sku": [
+            "SKU-006"
+          ],
+          "tipo": "directo"
+        },
+        "suzuki best 125": {
+          "sku": [
+            "SKU-016"
+          ],
+          "tipo": "directo"
+        },
+        "suzuki gixxer 150": {
+          "sku": [
+            "SKU-014"
+          ],
+          "tipo": "directo"
+        },
+        "suzuki gn 125": {
+          "sku": [
+            "SKU-013"
+          ],
+          "tipo": "directo"
+        },
+        "suzuki v-strom 250": {
+          "sku": [
+            "SKU-015"
+          ],
+          "tipo": "directo"
+        }
+      }
+    },
+    "faltantes": {
+      "canal": {
+        "n": 1,
+        "pct": 0.07
+      },
+      "email": {
+        "n": 700,
+        "pct": 46.57
+      },
+      "ciudad": {
+        "n": 79,
+        "pct": 5.26
+      },
+      "modelo_interes_texto": {
+        "n": 80,
+        "pct": 5.32
+      },
+      "fecha_primer_contacto": {
+        "n": 487,
+        "pct": 32.4
+      },
+      "campania": {
+        "n": 434,
+        "pct": 28.88
+      }
+    },
+    "issues": [
+      {
+        "id": "Q01",
+        "dataset": "leads",
+        "campo": "lead_id",
+        "tipo": "duplicados",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 2,
+        "descripcion": "Filas completamente duplicadas (mismo lead_id y mismos valores).",
+        "ejemplo": [
+          "LD-00011",
+          "LD-00251"
+        ]
+      },
+      {
+        "id": "Q02",
+        "dataset": "leads",
+        "campo": "canal",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 255,
+        "descripcion": "El mismo canal aparece con mayúsculas/minúsculas distintas.",
+        "ejemplo": {
+          "": 1,
+          "FORMULARIO WEB": 26,
+          "Formulario Web": 174,
+          "META ADS": 36,
+          "Meta Ads": 384,
+          "WHATSAPP": 68,
+          "WhatsApp": 689,
+          "formulario web": 21,
+          "meta ads": 37,
+          "whatsapp": 67
+        }
+      },
+      {
+        "id": "Q03",
+        "dataset": "leads",
+        "campo": "estado_gestion",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 281,
+        "descripcion": "El mismo estado aparece con mayúsculas/minúsculas distintas.",
+        "ejemplo": {
+          "Contactado": 285,
+          "Cotización enviada": 202,
+          "Descartado": 149,
+          "En proceso": 178,
+          "No contesta": 150,
+          "SIN GESTION": 44,
+          "Sin gestión": 258,
+          "contactado": 69,
+          "no contesta": 69,
+          "sin gestion": 99
+        }
+      },
+      {
+        "id": "Q04",
+        "dataset": "leads",
+        "campo": "fecha_registro / fecha_primer_contacto",
+        "tipo": "fechas",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 265,
+        "descripcion": "Fechas con barra realmente ambiguas entre DD/MM/YYYY y MM/DD/YYYY (día y mes <= 12); no se pueden resolver sin regla.",
+        "ejemplo": {
+          "fecha_registro": 265,
+          "fecha_primer_contacto": 216
+        }
+      },
+      {
+        "id": "Q05",
+        "dataset": "leads",
+        "campo": "fecha_registro",
+        "tipo": "fechas",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 974,
+        "descripcion": "Formatos de fecha mezclados (ISO-T, ISO con espacio, DD-MM-YYYY).",
+        "ejemplo": {
+          "DD-MM-YYYY": 219,
+          "DD/MM/YYYY": 204,
+          "DD/MM/YYYY vs MM/DD/YYYY": 265,
+          "ISO_SPACE": 592,
+          "ISO_T": 163,
+          "MM/DD/YYYY": 59,
+          "desconocido": 1
+        }
+      },
+      {
+        "id": "Q06",
+        "dataset": "leads",
+        "campo": "fecha_primer_contacto",
+        "tipo": "integridad",
+        "clasificacion": "requiere_revision_humana",
+        "n_afectados": 29,
+        "descripcion": "fecha_primer_contacto anterior a fecha_registro.",
+        "ejemplo": [
+          {
+            "lead_id": "LD-00045",
+            "fecha_registro": "2026-08-27 05:24:00",
+            "fecha_primer_contacto": "27-08-2026"
+          },
+          {
+            "lead_id": "LD-00093",
+            "fecha_registro": "2026-08-31 06:54:00",
+            "fecha_primer_contacto": "31-08-2026"
+          },
+          {
+            "lead_id": "LD-00135",
+            "fecha_registro": "2026-08-24 17:38:00",
+            "fecha_primer_contacto": "24-08-2026"
+          },
+          {
+            "lead_id": "LD-00163",
+            "fecha_registro": "2026-08-26 06:48:00",
+            "fecha_primer_contacto": "26-08-2026"
+          },
+          {
+            "lead_id": "LD-00213",
+            "fecha_registro": "22/08/2026 12:01",
+            "fecha_primer_contacto": "22-08-2026"
+          }
+        ]
+      },
+      {
+        "id": "Q07",
+        "dataset": "leads",
+        "campo": "telefono",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 847,
+        "descripcion": "Teléfonos con espacios, guiones, paréntesis y prefijo 57/+57.",
+        "ejemplo": {
+          "separado_10": 394,
+          "plano_10": 656,
+          "prefijo_57_separado": 203,
+          "prefijo_57_sin_signo": 129,
+          "parentesis": 120,
+          "otro": 1
+        }
+      },
+      {
+        "id": "Q08",
+        "dataset": "leads",
+        "campo": "telefono",
+        "tipo": "valores_invalidos",
+        "clasificacion": "requiere_revision_humana",
+        "n_afectados": 1,
+        "descripcion": "Teléfonos con longitud distinta a 10-12 dígitos.",
+        "ejemplo": [
+          {
+            "lead_id": "LD-01501",
+            "telefono": "300123"
+          }
+        ]
+      },
+      {
+        "id": "Q09",
+        "dataset": "leads",
+        "campo": "telefono",
+        "tipo": "duplicados",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 140,
+        "descripcion": "Teléfono normalizado compartido por más de un lead_id (280 leads involucrados).",
+        "ejemplo": {
+          "3104824081": [
+            "LD-00001",
+            "LD-00284"
+          ],
+          "3002859667": [
+            "LD-00004",
+            "LD-00052"
+          ],
+          "3226249985": [
+            "LD-00015",
+            "LD-01172"
+          ],
+          "3022506559": [
+            "LD-00028",
+            "LD-00319"
+          ],
+          "3176036920": [
+            "LD-00034",
+            "LD-01271"
+          ]
+        }
+      },
+      {
+        "id": "Q10",
+        "dataset": "leads",
+        "campo": "email",
+        "tipo": "valores_faltantes",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 700,
+        "descripcion": "Email faltante en 46.57% de los leads.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q11",
+        "dataset": "leads",
+        "campo": "email",
+        "tipo": "duplicados",
+        "clasificacion": "requiere_revision_humana",
+        "n_afectados": 1,
+        "descripcion": "Email repetido entre leads distintos.",
+        "ejemplo": {
+          "marcela.munoz15@yahoo.es": 2
+        }
+      },
+      {
+        "id": "Q12",
+        "dataset": "leads",
+        "campo": "ciudad",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 25,
+        "descripcion": "Ciudades con variantes de mayúsculas/acentos y abreviaturas (Bogotá D.C., Sta Marta, B/quilla...).",
+        "ejemplo": {
+          "B/quilla": 31,
+          "BARRANQUILLA": 25,
+          "BELLO": 38,
+          "BOGOTA": 60,
+          "Barranquilla": 19,
+          "Bello": 31,
+          "Bogota": 67,
+          "Bogota DC": 54,
+          "Bogotá": 68,
+          "Bogotá D.C.": 70,
+          "CARTAGENA": 40,
+          "Cartagena": 38,
+          "Cartagena de Indias": 35,
+          "ITAGUI": 26,
+          "Itagui": 29,
+          "Itagüí": 33,
+          "MEDELLIN": 32,
+          "MONTERIA": 32,
+          "Medellin": 42,
+          "Medellín": 72,
+          "Monteria": 26,
+          "Montería": 37,
+          "RIONEGRO": 25,
+          "Rio Negro": 39,
+          "Rionegro": 30,
+          "SANTA MARTA": 38,
+          "SOACHA": 44,
+          "SOLEDAD": 32,
+          "Santa Marta": 32,
+          "Soacha": 46,
+          "Soledad": 46,
+          "Sta Marta": 29,
+          "barranquilla": 29,
+          "bello": 38,
+          "bogotá": 59,
+          "medellin": 32
+        }
+      },
+      {
+        "id": "Q13",
+        "dataset": "leads",
+        "campo": "ciudad",
+        "tipo": "valores_faltantes",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 79,
+        "descripcion": "Ciudad faltante.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q14",
+        "dataset": "leads",
+        "campo": "modelo_interes_texto",
+        "tipo": "formatos",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 115,
+        "descripcion": "Modelo escrito solo como marca o de forma parcial/ambigua (no permite elegir un SKU único).",
+        "ejemplo": {
+          "AKT": {
+            "sku": [],
+            "tipo": "solo_marca"
+          },
+          "Bajaj": {
+            "sku": [],
+            "tipo": "solo_marca"
+          },
+          "Bajaj Pulsar": {
+            "sku": [
+              "SKU-008",
+              "SKU-009",
+              "SKU-010"
+            ],
+            "tipo": "prefijo_ambiguo"
+          },
+          "Hero": {
+            "sku": [],
+            "tipo": "solo_marca"
+          },
+          "Honda": {
+            "sku": [],
+            "tipo": "solo_marca"
+          },
+          "Honda CB": {
+            "sku": [
+              "SKU-001",
+              "SKU-003"
+            ],
+            "tipo": "prefijo_ambiguo"
+          },
+          "Honda XR": {
+            "sku": [
+              "SKU-002",
+              "SKU-006"
+            ],
+            "tipo": "prefijo_ambiguo"
+          },
+          "Suzuki": {
+            "sku": [],
+            "tipo": "solo_marca"
+          }
+        }
+      },
+      {
+        "id": "Q15",
+        "dataset": "leads",
+        "campo": "modelo_interes_texto",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 1308,
+        "descripcion": "Modelo con typos de marca (Bajai, Hnda, Heroo, Suzuky), formato A.K.T y sufijo de año; normalizables a un SKU.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q16",
+        "dataset": "leads",
+        "campo": "modelo_interes_texto",
+        "tipo": "valores_faltantes",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 80,
+        "descripcion": "Modelo de interés faltante.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q17",
+        "dataset": "leads",
+        "campo": "campania",
+        "tipo": "valores_faltantes",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 434,
+        "descripcion": "Campaña no informada; se conserva como ausencia.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q18",
+        "dataset": "leads",
+        "campo": "fecha_primer_contacto",
+        "tipo": "integridad",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 86,
+        "descripcion": "Leads con estado de gestión distinto de 'Sin gestión' pero sin fecha_primer_contacto.",
+        "ejemplo": {
+          "Contactado|contacto=False": 25,
+          "Contactado|contacto=True": 329,
+          "Cotización enviada|contacto=False": 19,
+          "Cotización enviada|contacto=True": 183,
+          "Descartado|contacto=False": 10,
+          "Descartado|contacto=True": 139,
+          "En proceso|contacto=False": 14,
+          "En proceso|contacto=True": 164,
+          "No contesta|contacto=False": 18,
+          "No contesta|contacto=True": 201,
+          "Sin gestión|contacto=False": 401
+        }
+      },
+      {
+        "id": "Q19",
+        "dataset": "leads",
+        "campo": "fecha_registro / fecha_primer_contacto",
+        "tipo": "fechas",
+        "clasificacion": "requiere_revision_humana",
+        "n_afectados": 1,
+        "descripcion": "Valores de fecha con formato no reconocible (p. ej. día imposible).",
+        "ejemplo": [
+          "2026-08-33 10:00:00"
+        ]
+      },
+      {
+        "id": "Q20",
+        "dataset": "leads",
+        "campo": "canal",
+        "tipo": "valores_faltantes",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 1,
+        "descripcion": "Canal vacío: no se puede asignar a una fuente de adquisición.",
+        "ejemplo": null
+      },
+      {
+        "id": "Q21",
+        "dataset": "leads",
+        "campo": "nombre_cliente",
+        "tipo": "formatos",
+        "clasificacion": "corregible_automaticamente",
+        "n_afectados": 281,
+        "descripcion": "Nombres con espacios sobrantes y mezcla de mayúsculas/minúsculas.",
+        "ejemplo": {
+          "en_mayusculas": 305
+        }
+      },
+      {
+        "id": "Q22",
+        "dataset": "leads",
+        "campo": "nombre_cliente / telefono",
+        "tipo": "duplicados",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 93,
+        "descripcion": "Posibles clientes repetidos (nombre normalizado + teléfono normalizado iguales).",
+        "ejemplo": {
+          "wilmar castano rodriguez|3104824081": [
+            "LD-00001",
+            "LD-00284"
+          ],
+          "marcela munoz valencia|3152293701": [
+            "LD-00011",
+            "LD-00011"
+          ],
+          "luisa betancur torres|3226249985": [
+            "LD-00015",
+            "LD-01172"
+          ],
+          "alexander arias ospina|3022506559": [
+            "LD-00028",
+            "LD-00319"
+          ],
+          "cristian castano giraldo|3104983766": [
+            "LD-00037",
+            "LD-00907"
+          ]
+        }
+      }
+    ]
+  },
+  "relaciones": {
+    "empresa_pv": {
+      "EMP-01": [
+        "PV-001",
+        "PV-002",
+        "PV-003",
+        "PV-004",
+        "PV-005"
+      ],
+      "EMP-02": [
+        "PV-006",
+        "PV-007",
+        "PV-008",
+        "PV-009",
+        "PV-010"
+      ],
+      "EMP-03": [
+        "PV-011",
+        "PV-012",
+        "PV-013",
+        "PV-014",
+        "PV-015"
+      ]
+    },
+    "validaciones": [
+      {
+        "dataset": "leads",
+        "pv_desconocido": [],
+        "empresa_inconsistente_con_pv": []
+      },
+      {
+        "dataset": "historico_cierres",
+        "pv_desconocido": [],
+        "empresa_inconsistente_con_pv": []
+      },
+      {
+        "dataset": "asesores",
+        "pv_desconocido": [],
+        "empresa_inconsistente_con_pv": []
+      }
+    ],
+    "catalogo_pv_invalidos": [],
+    "punto_venta_validos": [
+      "PV-001",
+      "PV-002",
+      "PV-003",
+      "PV-004",
+      "PV-005",
+      "PV-006",
+      "PV-007",
+      "PV-008",
+      "PV-009",
+      "PV-010",
+      "PV-011",
+      "PV-012",
+      "PV-013",
+      "PV-014",
+      "PV-015"
+    ],
+    "catalogo_pv_sin_asesor": [],
+    "leads_historico": {
+      "leads_distintos": 1501,
+      "historico_distintos": 2200,
+      "interseccion": 0,
+      "prefijos": {
+        "leads": [
+          "LD"
+        ],
+        "historico": [
+          "HX"
+        ]
+      }
+    }
+  },
+  "conversaciones": {
+    "total_conversaciones": 677,
+    "lead_ids_distintos": 652,
+    "conversaciones_con_match": 665,
+    "conversaciones_sin_match": 12,
+    "leads_sin_conversacion": 861,
+    "lead_id_duplicados": 25,
+    "detalle_lead_id_duplicados": {
+      "LD-00024": 2,
+      "LD-00160": 2,
+      "LD-00209": 2,
+      "LD-00229": 2,
+      "LD-00328": 2,
+      "LD-00409": 2,
+      "LD-00506": 2,
+      "LD-00515": 2,
+      "LD-00521": 2,
+      "LD-00570": 2,
+      "LD-00573": 2,
+      "LD-00584": 2,
+      "LD-00735": 2,
+      "LD-00922": 2,
+      "LD-00979": 2,
+      "LD-00980": 2,
+      "LD-00983": 2,
+      "LD-00988": 2,
+      "LD-01096": 2,
+      "LD-01134": 2,
+      "LD-01136": 2,
+      "LD-01199": 2,
+      "LD-01210": 2,
+      "LD-01223": 2,
+      "LD-01416": 2
+    },
+    "vacios": [],
+    "no_inicia_cliente": [],
+    "un_solo_emisor": [],
+    "longitudes": {
+      "mensajes_por_conversacion": {
+        "3": 73,
+        "6": 258,
+        "7": 225,
+        "8": 121
+      },
+      "caracteres": {
+        "min": 196,
+        "max": 545,
+        "media": 392.0,
+        "mediana": 414
+      },
+      "palabras": {
+        "min": 34,
+        "max": 99,
+        "media": 69.4,
+        "mediana": 74
+      },
+      "emisores": {
+        "cliente": 2610,
+        "asesor": 1700
+      }
+    },
+    "ejemplos_sin_match": [
+      {
+        "conversacion_id": "CONV-00648",
+        "lead_id": "LD-99188",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00650",
+        "lead_id": "LD-95231",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00641",
+        "lead_id": "LD-98570",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00643",
+        "lead_id": "LD-96391",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00647",
+        "lead_id": "LD-90301",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00646",
+        "lead_id": "LD-91440",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00642",
+        "lead_id": "LD-91598",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00652",
+        "lead_id": "LD-94638",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00651",
+        "lead_id": "LD-93917",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00649",
+        "lead_id": "LD-91911",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00645",
+        "lead_id": "LD-98483",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      },
+      {
+        "conversacion_id": "CONV-00644",
+        "lead_id": "LD-99235",
+        "fecha_inicio": "2026-08-15 11:00:00"
+      }
+    ],
+    "issues": [
+      {
+        "id": "C01",
+        "dataset": "conversaciones",
+        "campo": "lead_id",
+        "tipo": "referencia_rota",
+        "clasificacion": "requiere_revision_humana",
+        "n_afectados": 12,
+        "descripcion": "Conversaciones cuyo lead_id no existe en leads.csv (IDs fuera del rango LD-00001..LD-01501).",
+        "ejemplo": [
+          {
+            "conversacion_id": "CONV-00648",
+            "lead_id": "LD-99188",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          },
+          {
+            "conversacion_id": "CONV-00650",
+            "lead_id": "LD-95231",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          },
+          {
+            "conversacion_id": "CONV-00641",
+            "lead_id": "LD-98570",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          },
+          {
+            "conversacion_id": "CONV-00643",
+            "lead_id": "LD-96391",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          },
+          {
+            "conversacion_id": "CONV-00647",
+            "lead_id": "LD-90301",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          },
+          {
+            "conversacion_id": "CONV-00646",
+            "lead_id": "LD-91440",
+            "fecha_inicio": "2026-08-15 11:00:00"
+          }
+        ]
+      },
+      {
+        "id": "C02",
+        "dataset": "conversaciones",
+        "campo": "lead_id",
+        "tipo": "duplicados",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 25,
+        "descripcion": "lead_id con más de una conversación. No es posible decidir sin regla si son sesiones distintas o duplicados.",
+        "ejemplo": {
+          "LD-00024": 2,
+          "LD-00160": 2,
+          "LD-00209": 2,
+          "LD-00229": 2,
+          "LD-00328": 2
+        }
+      },
+      {
+        "id": "C03",
+        "dataset": "leads",
+        "campo": "lead_id",
+        "tipo": "cobertura",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 861,
+        "descripcion": "Leads sin conversación asociada. Coherente con que solo WhatsApp tiene transcripción."
+      }
+    ]
+  },
+  "historico": {
+    "registros": 2200,
+    "desenlace": {
+      "Perdido": 1824,
+      "Cerrado": 197,
+      "Sin gestión": 179
+    },
+    "por_empresa": {
+      "EMP-03": 723,
+      "EMP-02": 713,
+      "EMP-01": 764
+    },
+    "por_canal": {
+      "WhatsApp": 1206,
+      "Meta Ads": 670,
+      "Formulario Web": 324
+    },
+    "empresa_desenlace": {
+      "EMP-01|Cerrado": 74,
+      "EMP-01|Perdido": 628,
+      "EMP-01|Sin gestión": 62,
+      "EMP-02|Cerrado": 60,
+      "EMP-02|Perdido": 596,
+      "EMP-02|Sin gestión": 57,
+      "EMP-03|Cerrado": 63,
+      "EMP-03|Perdido": 600,
+      "EMP-03|Sin gestión": 60
+    },
+    "canal_desenlace": {
+      "Formulario Web|Cerrado": 29,
+      "Formulario Web|Perdido": 270,
+      "Formulario Web|Sin gestión": 25,
+      "Meta Ads|Cerrado": 54,
+      "Meta Ads|Perdido": 567,
+      "Meta Ads|Sin gestión": 49,
+      "WhatsApp|Cerrado": 114,
+      "WhatsApp|Perdido": 987,
+      "WhatsApp|Sin gestión": 105
+    },
+    "faltantes": {
+      "horas_al_primer_contacto": {
+        "n": 179,
+        "pct": 8.14
+      }
+    },
+    "numericas": {
+      "precio_lista": {
+        "n": 2200,
+        "min": 4990000.0,
+        "max": 24900000.0,
+        "media": 10566222.73,
+        "mediana": 8990000.0
+      },
+      "numero_contactos": {
+        "n": 2200,
+        "min": 0.0,
+        "max": 7.0,
+        "media": 3.8,
+        "mediana": 4.0
+      },
+      "horas_al_primer_contacto": {
+        "n": 2021,
+        "min": 0.5,
+        "max": 120.0,
+        "media": 25.44,
+        "mediana": 8.0
+      }
+    },
+    "contactos_por_desenlace": {
+      "Cerrado": {
+        "n": 197,
+        "min": 1.0,
+        "max": 7.0,
+        "media": 4.23,
+        "mediana": 4.0
+      },
+      "Perdido": {
+        "n": 1824,
+        "min": 1.0,
+        "max": 7.0,
+        "media": 4.13,
+        "mediana": 4.0
+      },
+      "Sin gestión": {
+        "n": 179,
+        "min": 0.0,
+        "max": 0.0,
+        "media": 0.0,
+        "mediana": 0.0
+      }
+    },
+    "horas_por_desenlace": {
+      "Cerrado": {
+        "n": 197,
+        "min": 0.5,
+        "max": 120.0,
+        "media": 17.33,
+        "mediana": 4.0
+      },
+      "Perdido": {
+        "n": 1824,
+        "min": 0.5,
+        "max": 120.0,
+        "media": 26.31,
+        "mediana": 8.0
+      }
+    },
+    "leakage": {
+      "horas_al_primer_contacto": {
+        "nulos": 179,
+        "nulos_que_son_sin_gestion": 179,
+        "nulos_fuera_de_sin_gestion": 0,
+        "clasificacion": "requiere_regla_de_negocio",
+        "motivo": "El nulo coincide exactamente con 'Sin gestión': la variable se registra después de gestionar y delata el desenlace."
+      },
+      "numero_contactos": {
+        "iguales_a_cero": 179,
+        "ceros_que_son_sin_gestion": 179,
+        "ceros_fuera_de_sin_gestion": 0,
+        "clasificacion": "requiere_regla_de_negocio",
+        "motivo": "El valor 0 coincide exactamente con 'Sin gestión'; se comporta como consecuencia del desenlace."
+      },
+      "desenlace": {
+        "clasificacion": "variable_objetivo",
+        "motivo": "Es la etiqueta a predecir; nunca debe entrar como predictor."
+      },
+      "precio_lista": {
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "motivo": "Disponible en catálogo antes de la gestión; no hay evidencia de fuga, aunque su utilidad es limitada."
+      },
+      "manifesto_cuota_inicial": {
+        "clasificacion": "requiere_regla_de_negocio",
+        "motivo": "Declarado por el cliente durante la gestión; debe confirmarse si estaba disponible al momento de priorizar."
+      },
+      "forma_pago_declarada": {
+        "clasificacion": "requiere_regla_de_negocio",
+        "motivo": "Declarado por el cliente durante la gestión; debe confirmarse su momento de captura."
+      },
+      "pidio_cita": {
+        "clasificacion": "requiere_regla_de_negocio",
+        "motivo": "Comportamiento previo a la decisión, pero podría registrarse después; requiere confirmación."
+      }
+    },
+    "posible_priorizacion": [
+      "canal",
+      "empresa_id",
+      "punto_venta_id",
+      "modelo_cotizado",
+      "precio_lista",
+      "fecha_registro"
+    ],
+    "issues": [
+      {
+        "id": "H01",
+        "dataset": "historico_cierres",
+        "campo": "horas_al_primer_contacto",
+        "tipo": "data_leakage",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 179,
+        "descripcion": "Nulo exactamente cuando desenlace='Sin gestión'. Usar o imputar esta variable fuga la etiqueta.",
+        "ejemplo": [
+          "HX-00046",
+          "HX-00062",
+          "HX-00063",
+          "HX-00094",
+          "HX-00105"
+        ]
+      },
+      {
+        "id": "H02",
+        "dataset": "historico_cierres",
+        "campo": "numero_contactos",
+        "tipo": "data_leakage",
+        "clasificacion": "requiere_regla_de_negocio",
+        "n_afectados": 179,
+        "descripcion": "Valor 0 exactamente cuando desenlace='Sin gestión'. Se comporta como consecuencia del desenlace.",
+        "ejemplo": [
+          "HX-00046",
+          "HX-00062",
+          "HX-00063",
+          "HX-00094",
+          "HX-00105"
+        ]
+      },
+      {
+        "id": "H03",
+        "dataset": "historico_cierres",
+        "campo": "desenlace",
+        "tipo": "desbalance_clases",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 197,
+        "descripcion": "Clase minoritaria 'Cerrado' = 197 de 2200 (8.95%).",
+        "ejemplo": {
+          "Perdido": 1824,
+          "Cerrado": 197,
+          "Sin gestión": 179
+        }
+      }
+    ]
+  },
+  "catalogo": {
+    "registros": 24,
+    "marcas": {
+      "Honda": 6,
+      "Bajaj": 6,
+      "Suzuki": 4,
+      "AKT": 4,
+      "Hero": 4
+    },
+    "segmentos": {
+      "Trabajo": 7,
+      "Doble propósito": 4,
+      "Deportiva": 7,
+      "Scooter": 4,
+      "Turismo": 2
+    },
+    "lineas": [
+      "CB 125F Twister",
+      "XR 150L",
+      "CB 190R",
+      "Navi",
+      "Dio 110",
+      "XRE 300",
+      "Boxer CT 100",
+      "Pulsar NS 125",
+      "Pulsar NS 160",
+      "Pulsar RS 200",
+      "Dominar 400",
+      "Discover 125",
+      "GN 125",
+      "Gixxer 150",
+      "V-Strom 250",
+      "Best 125",
+      "NKD 125",
+      "Dynamic R3 125",
+      "TTR 200",
+      "Evo RS 150",
+      "Eco Deluxe 100",
+      "Hunk 160R",
+      "Xpulse 200",
+      "Dash 110"
+    ],
+    "lineas_unicas": 24,
+    "cilindrajes": {
+      "100": 2,
+      "110": 3,
+      "124": 3,
+      "125": 4,
+      "150": 2,
+      "155": 1,
+      "160": 1,
+      "163": 1,
+      "184": 1,
+      "196": 1,
+      "199": 2,
+      "249": 1,
+      "291": 1,
+      "373": 1
+    },
+    "precios": {
+      "min": 4990000,
+      "max": 24900000,
+      "media": 10695417
+    },
+    "unidades": {
+      "total": 326,
+      "min": 2,
+      "max": 24
+    },
+    "cobertura_puntos_venta": {
+      "min": 3,
+      "max": 11
+    },
+    "historico_modelos_sin_catalogo": [],
+    "historico_precio_inconsistente": [],
+    "leads_modelos_sin_match": [],
+    "canal_historico_consistente": [
+      "Formulario Web",
+      "Meta Ads",
+      "WhatsApp"
+    ],
+    "issues": [
+      {
+        "id": "K01",
+        "dataset": "catalogo_motos / historico_cierres",
+        "campo": "modelo_cotizado / marca+linea",
+        "tipo": "consistencia",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 0,
+        "descripcion": "No se detectaron modelos de histórico fuera del catálogo (marca + línea).",
+        "ejemplo": []
+      },
+      {
+        "id": "K02",
+        "dataset": "catalogo_motos / historico_cierres",
+        "campo": "precio_lista",
+        "tipo": "consistencia",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 0,
+        "descripcion": "No se detectaron precios del histórico distintos del precio de catálogo.",
+        "ejemplo": []
+      }
+    ]
+  },
+  "asesores": {
+    "registros": 42,
+    "por_empresa": {
+      "EMP-01": 16,
+      "EMP-02": 12,
+      "EMP-03": 14
+    },
+    "por_punto_venta": {
+      "PV-001": 4,
+      "PV-002": 4,
+      "PV-003": 4,
+      "PV-004": 2,
+      "PV-005": 2,
+      "PV-006": 2,
+      "PV-007": 2,
+      "PV-008": 3,
+      "PV-009": 3,
+      "PV-010": 2,
+      "PV-011": 4,
+      "PV-012": 4,
+      "PV-013": 2,
+      "PV-014": 2,
+      "PV-015": 2
+    },
+    "activos": {
+      "SI": 40,
+      "NO": 2
+    },
+    "inactivos": [
+      {
+        "asesor_id": "AS-037",
+        "punto_venta_id": "PV-013",
+        "empresa_id": "EMP-03"
+      },
+      {
+        "asesor_id": "AS-040",
+        "punto_venta_id": "PV-014",
+        "empresa_id": "EMP-03"
+      }
+    ],
+    "capacidades": {
+      "12": 9,
+      "15": 10,
+      "18": 8,
+      "20": 10,
+      "25": 5
+    },
+    "activos_por_punto_venta": {
+      "PV-001": 4,
+      "PV-002": 4,
+      "PV-003": 4,
+      "PV-004": 2,
+      "PV-005": 2,
+      "PV-006": 2,
+      "PV-007": 2,
+      "PV-008": 3,
+      "PV-009": 3,
+      "PV-010": 2,
+      "PV-011": 4,
+      "PV-012": 4,
+      "PV-013": 1,
+      "PV-014": 1,
+      "PV-015": 2
+    },
+    "capacidad_diaria_por_punto_venta": {
+      "PV-001": 77,
+      "PV-002": 63,
+      "PV-003": 66,
+      "PV-004": 32,
+      "PV-005": 40,
+      "PV-006": 35,
+      "PV-007": 24,
+      "PV-008": 60,
+      "PV-009": 55,
+      "PV-010": 27,
+      "PV-011": 60,
+      "PV-012": 86,
+      "PV-013": 12,
+      "PV-014": 20,
+      "PV-015": 37
+    },
+    "puntos_sin_asesor_activo": [],
+    "puntos_de_venta": [
+      "PV-001",
+      "PV-002",
+      "PV-003",
+      "PV-004",
+      "PV-005",
+      "PV-006",
+      "PV-007",
+      "PV-008",
+      "PV-009",
+      "PV-010",
+      "PV-011",
+      "PV-012",
+      "PV-013",
+      "PV-014",
+      "PV-015"
+    ],
+    "issues": [
+      {
+        "id": "A01",
+        "dataset": "asesores",
+        "campo": "activo",
+        "tipo": "estado",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 2,
+        "descripcion": "Asesores inactivos; todos los puntos de venta conservan al menos un asesor activo.",
+        "ejemplo": [
+          {
+            "asesor_id": "AS-037",
+            "punto_venta_id": "PV-013",
+            "empresa_id": "EMP-03"
+          },
+          {
+            "asesor_id": "AS-040",
+            "punto_venta_id": "PV-014",
+            "empresa_id": "EMP-03"
+          }
+        ]
+      },
+      {
+        "id": "A02",
+        "dataset": "asesores",
+        "campo": "punto_venta_id / empresa_id",
+        "tipo": "referencias",
+        "clasificacion": "debe_conservarse_como_dato_original",
+        "n_afectados": 0,
+        "descripcion": "No se detectaron referencias inválidas ni combinaciones empresa/punto de venta incoherentes.",
+        "ejemplo": []
+      }
+    ]
+  },
+  "issues": [
+    {
+      "id": "Q01",
+      "dataset": "leads",
+      "campo": "lead_id",
+      "tipo": "duplicados",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 2,
+      "descripcion": "Filas completamente duplicadas (mismo lead_id y mismos valores).",
+      "ejemplo": [
+        "LD-00011",
+        "LD-00251"
+      ]
+    },
+    {
+      "id": "Q02",
+      "dataset": "leads",
+      "campo": "canal",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 255,
+      "descripcion": "El mismo canal aparece con mayúsculas/minúsculas distintas.",
+      "ejemplo": {
+        "": 1,
+        "FORMULARIO WEB": 26,
+        "Formulario Web": 174,
+        "META ADS": 36,
+        "Meta Ads": 384,
+        "WHATSAPP": 68,
+        "WhatsApp": 689,
+        "formulario web": 21,
+        "meta ads": 37,
+        "whatsapp": 67
+      }
+    },
+    {
+      "id": "Q03",
+      "dataset": "leads",
+      "campo": "estado_gestion",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 281,
+      "descripcion": "El mismo estado aparece con mayúsculas/minúsculas distintas.",
+      "ejemplo": {
+        "Contactado": 285,
+        "Cotización enviada": 202,
+        "Descartado": 149,
+        "En proceso": 178,
+        "No contesta": 150,
+        "SIN GESTION": 44,
+        "Sin gestión": 258,
+        "contactado": 69,
+        "no contesta": 69,
+        "sin gestion": 99
+      }
+    },
+    {
+      "id": "Q04",
+      "dataset": "leads",
+      "campo": "fecha_registro / fecha_primer_contacto",
+      "tipo": "fechas",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 265,
+      "descripcion": "Fechas con barra realmente ambiguas entre DD/MM/YYYY y MM/DD/YYYY (día y mes <= 12); no se pueden resolver sin regla.",
+      "ejemplo": {
+        "fecha_registro": 265,
+        "fecha_primer_contacto": 216
+      }
+    },
+    {
+      "id": "Q05",
+      "dataset": "leads",
+      "campo": "fecha_registro",
+      "tipo": "fechas",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 974,
+      "descripcion": "Formatos de fecha mezclados (ISO-T, ISO con espacio, DD-MM-YYYY).",
+      "ejemplo": {
+        "DD-MM-YYYY": 219,
+        "DD/MM/YYYY": 204,
+        "DD/MM/YYYY vs MM/DD/YYYY": 265,
+        "ISO_SPACE": 592,
+        "ISO_T": 163,
+        "MM/DD/YYYY": 59,
+        "desconocido": 1
+      }
+    },
+    {
+      "id": "Q06",
+      "dataset": "leads",
+      "campo": "fecha_primer_contacto",
+      "tipo": "integridad",
+      "clasificacion": "requiere_revision_humana",
+      "n_afectados": 29,
+      "descripcion": "fecha_primer_contacto anterior a fecha_registro.",
+      "ejemplo": [
+        {
+          "lead_id": "LD-00045",
+          "fecha_registro": "2026-08-27 05:24:00",
+          "fecha_primer_contacto": "27-08-2026"
+        },
+        {
+          "lead_id": "LD-00093",
+          "fecha_registro": "2026-08-31 06:54:00",
+          "fecha_primer_contacto": "31-08-2026"
+        },
+        {
+          "lead_id": "LD-00135",
+          "fecha_registro": "2026-08-24 17:38:00",
+          "fecha_primer_contacto": "24-08-2026"
+        },
+        {
+          "lead_id": "LD-00163",
+          "fecha_registro": "2026-08-26 06:48:00",
+          "fecha_primer_contacto": "26-08-2026"
+        },
+        {
+          "lead_id": "LD-00213",
+          "fecha_registro": "22/08/2026 12:01",
+          "fecha_primer_contacto": "22-08-2026"
+        }
+      ]
+    },
+    {
+      "id": "Q07",
+      "dataset": "leads",
+      "campo": "telefono",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 847,
+      "descripcion": "Teléfonos con espacios, guiones, paréntesis y prefijo 57/+57.",
+      "ejemplo": {
+        "separado_10": 394,
+        "plano_10": 656,
+        "prefijo_57_separado": 203,
+        "prefijo_57_sin_signo": 129,
+        "parentesis": 120,
+        "otro": 1
+      }
+    },
+    {
+      "id": "Q08",
+      "dataset": "leads",
+      "campo": "telefono",
+      "tipo": "valores_invalidos",
+      "clasificacion": "requiere_revision_humana",
+      "n_afectados": 1,
+      "descripcion": "Teléfonos con longitud distinta a 10-12 dígitos.",
+      "ejemplo": [
+        {
+          "lead_id": "LD-01501",
+          "telefono": "300123"
+        }
+      ]
+    },
+    {
+      "id": "Q09",
+      "dataset": "leads",
+      "campo": "telefono",
+      "tipo": "duplicados",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 140,
+      "descripcion": "Teléfono normalizado compartido por más de un lead_id (280 leads involucrados).",
+      "ejemplo": {
+        "3104824081": [
+          "LD-00001",
+          "LD-00284"
+        ],
+        "3002859667": [
+          "LD-00004",
+          "LD-00052"
+        ],
+        "3226249985": [
+          "LD-00015",
+          "LD-01172"
+        ],
+        "3022506559": [
+          "LD-00028",
+          "LD-00319"
+        ],
+        "3176036920": [
+          "LD-00034",
+          "LD-01271"
+        ]
+      }
+    },
+    {
+      "id": "Q10",
+      "dataset": "leads",
+      "campo": "email",
+      "tipo": "valores_faltantes",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 700,
+      "descripcion": "Email faltante en 46.57% de los leads.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q11",
+      "dataset": "leads",
+      "campo": "email",
+      "tipo": "duplicados",
+      "clasificacion": "requiere_revision_humana",
+      "n_afectados": 1,
+      "descripcion": "Email repetido entre leads distintos.",
+      "ejemplo": {
+        "marcela.munoz15@yahoo.es": 2
+      }
+    },
+    {
+      "id": "Q12",
+      "dataset": "leads",
+      "campo": "ciudad",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 25,
+      "descripcion": "Ciudades con variantes de mayúsculas/acentos y abreviaturas (Bogotá D.C., Sta Marta, B/quilla...).",
+      "ejemplo": {
+        "B/quilla": 31,
+        "BARRANQUILLA": 25,
+        "BELLO": 38,
+        "BOGOTA": 60,
+        "Barranquilla": 19,
+        "Bello": 31,
+        "Bogota": 67,
+        "Bogota DC": 54,
+        "Bogotá": 68,
+        "Bogotá D.C.": 70,
+        "CARTAGENA": 40,
+        "Cartagena": 38,
+        "Cartagena de Indias": 35,
+        "ITAGUI": 26,
+        "Itagui": 29,
+        "Itagüí": 33,
+        "MEDELLIN": 32,
+        "MONTERIA": 32,
+        "Medellin": 42,
+        "Medellín": 72,
+        "Monteria": 26,
+        "Montería": 37,
+        "RIONEGRO": 25,
+        "Rio Negro": 39,
+        "Rionegro": 30,
+        "SANTA MARTA": 38,
+        "SOACHA": 44,
+        "SOLEDAD": 32,
+        "Santa Marta": 32,
+        "Soacha": 46,
+        "Soledad": 46,
+        "Sta Marta": 29,
+        "barranquilla": 29,
+        "bello": 38,
+        "bogotá": 59,
+        "medellin": 32
+      }
+    },
+    {
+      "id": "Q13",
+      "dataset": "leads",
+      "campo": "ciudad",
+      "tipo": "valores_faltantes",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 79,
+      "descripcion": "Ciudad faltante.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q14",
+      "dataset": "leads",
+      "campo": "modelo_interes_texto",
+      "tipo": "formatos",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 115,
+      "descripcion": "Modelo escrito solo como marca o de forma parcial/ambigua (no permite elegir un SKU único).",
+      "ejemplo": {
+        "AKT": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Bajaj": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Bajaj Pulsar": {
+          "sku": [
+            "SKU-008",
+            "SKU-009",
+            "SKU-010"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Hero": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Honda": {
+          "sku": [],
+          "tipo": "solo_marca"
+        },
+        "Honda CB": {
+          "sku": [
+            "SKU-001",
+            "SKU-003"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Honda XR": {
+          "sku": [
+            "SKU-002",
+            "SKU-006"
+          ],
+          "tipo": "prefijo_ambiguo"
+        },
+        "Suzuki": {
+          "sku": [],
+          "tipo": "solo_marca"
+        }
+      }
+    },
+    {
+      "id": "Q15",
+      "dataset": "leads",
+      "campo": "modelo_interes_texto",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 1308,
+      "descripcion": "Modelo con typos de marca (Bajai, Hnda, Heroo, Suzuky), formato A.K.T y sufijo de año; normalizables a un SKU.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q16",
+      "dataset": "leads",
+      "campo": "modelo_interes_texto",
+      "tipo": "valores_faltantes",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 80,
+      "descripcion": "Modelo de interés faltante.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q17",
+      "dataset": "leads",
+      "campo": "campania",
+      "tipo": "valores_faltantes",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 434,
+      "descripcion": "Campaña no informada; se conserva como ausencia.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q18",
+      "dataset": "leads",
+      "campo": "fecha_primer_contacto",
+      "tipo": "integridad",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 86,
+      "descripcion": "Leads con estado de gestión distinto de 'Sin gestión' pero sin fecha_primer_contacto.",
+      "ejemplo": {
+        "Contactado|contacto=False": 25,
+        "Contactado|contacto=True": 329,
+        "Cotización enviada|contacto=False": 19,
+        "Cotización enviada|contacto=True": 183,
+        "Descartado|contacto=False": 10,
+        "Descartado|contacto=True": 139,
+        "En proceso|contacto=False": 14,
+        "En proceso|contacto=True": 164,
+        "No contesta|contacto=False": 18,
+        "No contesta|contacto=True": 201,
+        "Sin gestión|contacto=False": 401
+      }
+    },
+    {
+      "id": "Q19",
+      "dataset": "leads",
+      "campo": "fecha_registro / fecha_primer_contacto",
+      "tipo": "fechas",
+      "clasificacion": "requiere_revision_humana",
+      "n_afectados": 1,
+      "descripcion": "Valores de fecha con formato no reconocible (p. ej. día imposible).",
+      "ejemplo": [
+        "2026-08-33 10:00:00"
+      ]
+    },
+    {
+      "id": "Q20",
+      "dataset": "leads",
+      "campo": "canal",
+      "tipo": "valores_faltantes",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 1,
+      "descripcion": "Canal vacío: no se puede asignar a una fuente de adquisición.",
+      "ejemplo": null
+    },
+    {
+      "id": "Q21",
+      "dataset": "leads",
+      "campo": "nombre_cliente",
+      "tipo": "formatos",
+      "clasificacion": "corregible_automaticamente",
+      "n_afectados": 281,
+      "descripcion": "Nombres con espacios sobrantes y mezcla de mayúsculas/minúsculas.",
+      "ejemplo": {
+        "en_mayusculas": 305
+      }
+    },
+    {
+      "id": "Q22",
+      "dataset": "leads",
+      "campo": "nombre_cliente / telefono",
+      "tipo": "duplicados",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 93,
+      "descripcion": "Posibles clientes repetidos (nombre normalizado + teléfono normalizado iguales).",
+      "ejemplo": {
+        "wilmar castano rodriguez|3104824081": [
+          "LD-00001",
+          "LD-00284"
+        ],
+        "marcela munoz valencia|3152293701": [
+          "LD-00011",
+          "LD-00011"
+        ],
+        "luisa betancur torres|3226249985": [
+          "LD-00015",
+          "LD-01172"
+        ],
+        "alexander arias ospina|3022506559": [
+          "LD-00028",
+          "LD-00319"
+        ],
+        "cristian castano giraldo|3104983766": [
+          "LD-00037",
+          "LD-00907"
+        ]
+      }
+    },
+    {
+      "id": "R01",
+      "dataset": "todos",
+      "campo": "punto_venta_id / empresa_id",
+      "tipo": "referencias",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 0,
+      "descripcion": "Sin referencias a puntos de venta inexistentes ni combinaciones empresa/punto incoherentes entre datasets.",
+      "ejemplo": []
+    },
+    {
+      "id": "R02",
+      "dataset": "catalogo_motos",
+      "campo": "puntos_venta_disponibles",
+      "tipo": "referencias",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 0,
+      "descripcion": "Todos los puntos de venta del catálogo existen en asesores.csv.",
+      "ejemplo": []
+    },
+    {
+      "id": "R03",
+      "dataset": "leads / historico_cierres",
+      "campo": "lead_id",
+      "tipo": "llave_compartida",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 0,
+      "descripcion": "La intersección de lead_id entre leads (LD-) e histórico (HX-) es cero: no se pueden unir directamente.",
+      "ejemplo": {
+        "leads": [
+          "LD"
+        ],
+        "historico": [
+          "HX"
+        ]
+      }
+    },
+    {
+      "id": "C01",
+      "dataset": "conversaciones",
+      "campo": "lead_id",
+      "tipo": "referencia_rota",
+      "clasificacion": "requiere_revision_humana",
+      "n_afectados": 12,
+      "descripcion": "Conversaciones cuyo lead_id no existe en leads.csv (IDs fuera del rango LD-00001..LD-01501).",
+      "ejemplo": [
+        {
+          "conversacion_id": "CONV-00648",
+          "lead_id": "LD-99188",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        },
+        {
+          "conversacion_id": "CONV-00650",
+          "lead_id": "LD-95231",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        },
+        {
+          "conversacion_id": "CONV-00641",
+          "lead_id": "LD-98570",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        },
+        {
+          "conversacion_id": "CONV-00643",
+          "lead_id": "LD-96391",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        },
+        {
+          "conversacion_id": "CONV-00647",
+          "lead_id": "LD-90301",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        },
+        {
+          "conversacion_id": "CONV-00646",
+          "lead_id": "LD-91440",
+          "fecha_inicio": "2026-08-15 11:00:00"
+        }
+      ]
+    },
+    {
+      "id": "C02",
+      "dataset": "conversaciones",
+      "campo": "lead_id",
+      "tipo": "duplicados",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 25,
+      "descripcion": "lead_id con más de una conversación. No es posible decidir sin regla si son sesiones distintas o duplicados.",
+      "ejemplo": {
+        "LD-00024": 2,
+        "LD-00160": 2,
+        "LD-00209": 2,
+        "LD-00229": 2,
+        "LD-00328": 2
+      }
+    },
+    {
+      "id": "C03",
+      "dataset": "leads",
+      "campo": "lead_id",
+      "tipo": "cobertura",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 861,
+      "descripcion": "Leads sin conversación asociada. Coherente con que solo WhatsApp tiene transcripción."
+    },
+    {
+      "id": "H01",
+      "dataset": "historico_cierres",
+      "campo": "horas_al_primer_contacto",
+      "tipo": "data_leakage",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 179,
+      "descripcion": "Nulo exactamente cuando desenlace='Sin gestión'. Usar o imputar esta variable fuga la etiqueta.",
+      "ejemplo": [
+        "HX-00046",
+        "HX-00062",
+        "HX-00063",
+        "HX-00094",
+        "HX-00105"
+      ]
+    },
+    {
+      "id": "H02",
+      "dataset": "historico_cierres",
+      "campo": "numero_contactos",
+      "tipo": "data_leakage",
+      "clasificacion": "requiere_regla_de_negocio",
+      "n_afectados": 179,
+      "descripcion": "Valor 0 exactamente cuando desenlace='Sin gestión'. Se comporta como consecuencia del desenlace.",
+      "ejemplo": [
+        "HX-00046",
+        "HX-00062",
+        "HX-00063",
+        "HX-00094",
+        "HX-00105"
+      ]
+    },
+    {
+      "id": "H03",
+      "dataset": "historico_cierres",
+      "campo": "desenlace",
+      "tipo": "desbalance_clases",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 197,
+      "descripcion": "Clase minoritaria 'Cerrado' = 197 de 2200 (8.95%).",
+      "ejemplo": {
+        "Perdido": 1824,
+        "Cerrado": 197,
+        "Sin gestión": 179
+      }
+    },
+    {
+      "id": "K01",
+      "dataset": "catalogo_motos / historico_cierres",
+      "campo": "modelo_cotizado / marca+linea",
+      "tipo": "consistencia",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 0,
+      "descripcion": "No se detectaron modelos de histórico fuera del catálogo (marca + línea).",
+      "ejemplo": []
+    },
+    {
+      "id": "K02",
+      "dataset": "catalogo_motos / historico_cierres",
+      "campo": "precio_lista",
+      "tipo": "consistencia",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 0,
+      "descripcion": "No se detectaron precios del histórico distintos del precio de catálogo.",
+      "ejemplo": []
+    },
+    {
+      "id": "A01",
+      "dataset": "asesores",
+      "campo": "activo",
+      "tipo": "estado",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 2,
+      "descripcion": "Asesores inactivos; todos los puntos de venta conservan al menos un asesor activo.",
+      "ejemplo": [
+        {
+          "asesor_id": "AS-037",
+          "punto_venta_id": "PV-013",
+          "empresa_id": "EMP-03"
+        },
+        {
+          "asesor_id": "AS-040",
+          "punto_venta_id": "PV-014",
+          "empresa_id": "EMP-03"
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "dataset": "asesores",
+      "campo": "punto_venta_id / empresa_id",
+      "tipo": "referencias",
+      "clasificacion": "debe_conservarse_como_dato_original",
+      "n_afectados": 0,
+      "descripcion": "No se detectaron referencias inválidas ni combinaciones empresa/punto de venta incoherentes.",
+      "ejemplo": []
+    }
+  ]
+}

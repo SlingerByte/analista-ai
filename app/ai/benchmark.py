@@ -324,7 +324,7 @@ def _render_markdown(report: dict) -> str:
                 )
             lines.append("")
 
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).rstrip("\n") + "\n"
 
 
 def write_reports(report: dict, reports_dir: Path = REPORTS_DIR) -> tuple[Path, Path]:

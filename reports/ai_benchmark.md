@@ -48,4 +48,3 @@
 
 - model: None
 - available: False (OPENROUTER_API_KEY not configured)
-

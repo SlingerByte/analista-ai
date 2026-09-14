@@ -160,6 +160,29 @@ def test_openrouter_extract_schema_invalid(monkeypatch):
     assert outcome.result is None
 
 
+def test_ollama_sends_json_schema_format(monkeypatch):
+    from app.ai.ollama import structured_format
+
+    extractor = OllamaExtractor("http://localhost:11434", "llama3.2", 5.0)
+    captured = {}
+
+    def _capture(method, url, payload=None, headers=None):
+        captured["payload"] = payload
+        return {"message": {"content": json.dumps({"model_interes": None})}}
+
+    monkeypatch.setattr(extractor, "_request_json", _capture)
+    outcome = extractor.extract(_conversation())
+    assert outcome.success is True
+    assert outcome.schema_valid is True
+
+    schema = structured_format()
+    assert schema.get("type") == "object"
+    assert "objecion" in schema.get("properties", {})
+    sent_format = captured["payload"]["format"]
+    assert isinstance(sent_format, dict)
+    assert sent_format == schema
+
+
 def test_openrouter_list_free_models(monkeypatch):
     extractor = OpenRouterExtractor("k", "m", "https://openrouter.ai/api/v1", 5.0)
     monkeypatch.setattr(

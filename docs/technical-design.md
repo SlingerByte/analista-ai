@@ -421,6 +421,15 @@ pipeline → AIExtractor ──┬── OllamaExtractor
   campos + `*_evidence` literal; es un contrato reducido de exploración, distinto
   del contrato persistido más rico descrito en §9.1. No modifica el pipeline
   productivo.
+- **AI-1A (endurecimiento, prompt `v2`, schema sin cambios)**: la evidencia debe ser
+  cita breve y literal de un mensaje del cliente (los mensajes del asesor son solo
+  contexto); lista explícita de no-invención (cuota mensual ≠ cuota inicial, precio
+  del asesor ≠ presupuesto, oferta ≠ solicitud de cotización/cita, "dale/ok" ≠
+  intención); guía de `intencion_compra` alta/media/baja/informativa/null;
+  `objecion` siempre string de la lista o null (el schema ya rechaza boolean).
+  Ollama usa structured output pasando el JSON Schema Pydantic en `format`
+  (`app/ai/ollama.py::structured_format`), sin dependencias nuevas. El benchmark
+  conserva el baseline AI-0 dentro del nuevo reporte (sección de comparación).
 
 ---
 

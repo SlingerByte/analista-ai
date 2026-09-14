@@ -15,7 +15,7 @@ def _conversation() -> ConversationInput:
 
 
 def test_prompt_version_is_defined():
-    assert EXTRACTION_PROMPT_VERSION == "v1"
+    assert EXTRACTION_PROMPT_VERSION == "v2"
 
 
 def test_prompt_has_system_and_user_messages():
@@ -30,6 +30,36 @@ def test_system_prompt_states_key_rules():
     assert "null" in lowered
     assert "cliente" in lowered and "asesor" in lowered
     assert "evidencia" in lowered
+
+
+def test_system_prompt_requires_client_only_literal_evidence():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "literal" in lowered
+    assert "del cliente" in lowered
+    assert "nunca" in lowered and "asesor" in lowered
+
+
+def test_system_prompt_forbids_common_hallucinations():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "cuota_inicial" in lowered
+    assert "cuota mensual" in lowered or "cuotas de" in lowered
+    assert "cotizaci" in lowered
+    assert "cita" in lowered
+    assert "dale" in lowered
+
+
+def test_system_prompt_defines_purchase_intent_levels():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "intencion_compra" in lowered
+    assert '"alta"' in lowered
+    assert '"media"' in lowered
+    assert '"baja"' in lowered
+
+
+def test_system_prompt_forbids_boolean_objecion():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "objecion" in lowered
+    assert "boolean" in lowered
 
 
 def test_user_prompt_includes_transcript_and_schema_fields():

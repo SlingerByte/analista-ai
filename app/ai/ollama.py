@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from app.ai.base import AIRequestError, BaseHTTPExtractor
 from app.ai.prompt import build_messages
-from app.ai.schema import ConversationInput
+from app.ai.schema import ConversationInput, ExtractionResult
+
+
+def structured_format() -> dict:
+    """JSON Schema (Pydantic) para el parámetro `format` de Ollama.
+
+    Cambio aislado AI-1A: sin dependencias nuevas. Ollama acepta un objeto
+    JSON Schema en `format` y restringe la salida a ese esquema.
+    """
+    return ExtractionResult.model_json_schema()
 
 
 class OllamaExtractor(BaseHTTPExtractor):
@@ -32,7 +41,7 @@ class OllamaExtractor(BaseHTTPExtractor):
             "model": self.model,
             "messages": build_messages(conversation),
             "stream": False,
-            "format": "json",
+            "format": structured_format(),
             "options": {"temperature": 0},
         }
         data = self._request_json("POST", f"{self.base_url}/api/chat", payload)

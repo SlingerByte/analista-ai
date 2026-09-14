@@ -257,7 +257,7 @@ def run_benchmark(extractors: list[AIExtractor], cases: list[dict]) -> dict:
 
 
 def _render_markdown(report: dict) -> str:
-    lines = ["# AI extraction benchmark (AI-0)", ""]
+    lines = ["# AI extraction benchmark", ""]
     lines.append(f"- generated_at: {report['generated_at']}")
     lines.append(f"- schema_version: {report['schema_version']}")
     lines.append(f"- prompt_version: {report['prompt_version']}")
@@ -273,6 +273,30 @@ def _render_markdown(report: dict) -> str:
             f"| {case['case']} | {case['conversation_id']} | {case['lead_id']} | {case['message_count']} |"
         )
     lines.append("")
+
+    baseline = report.get("baseline")
+    if baseline:
+        lines.append(f"## Baseline {baseline.get('prompt_version')} vs actual {report['prompt_version']}")
+        lines.append("")
+        lines.append(
+            "El baseline anterior se conserva (ver historial git de "
+            "`reports/ai_benchmark.json`). Comparación de métricas por proveedor:"
+        )
+        lines.append("")
+        lines.append("| provider | baseline válido | actual válido | baseline campos | actual campos |")
+        lines.append("|---|---|---|---|---|")
+        for provider, entry in report["providers"].items():
+            base_metrics = (baseline.get("providers") or {}).get(provider, {})
+            metrics = entry["metrics"]
+            lines.append(
+                f"| {provider} | {base_metrics.get('schema_valid_rate')} "
+                f"({base_metrics.get('requests')} req) | {metrics['schema_valid_rate']} "
+                f"({metrics['requests']} req) | {base_metrics.get('fields_extracted')} | "
+                f"{metrics['fields_extracted']} |"
+            )
+        lines.append("")
+        lines.append(f"- baseline generated_at: {baseline.get('generated_at')}")
+        lines.append("")
 
     for provider, entry in report["providers"].items():
         lines.append(f"## Provider: {provider}")
@@ -331,6 +355,23 @@ def write_reports(report: dict, reports_dir: Path = REPORTS_DIR) -> tuple[Path, 
     reports_dir.mkdir(parents=True, exist_ok=True)
     json_path = reports_dir / "ai_benchmark.json"
     md_path = reports_dir / "ai_benchmark.md"
+    # AI-1A: conservar el baseline anterior dentro del nuevo reporte en vez de
+    # sobrescribirlo sin rastro. Solo se adjunta si el prompt_version cambió.
+    if "baseline" not in report and json_path.exists():
+        try:
+            previous = json.loads(json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            previous = None
+        if previous and previous.get("prompt_version") != report.get("prompt_version"):
+            baseline_providers = {}
+            for provider, entry in (previous.get("providers") or {}).items():
+                baseline_providers[provider] = (entry.get("metrics") or {})
+            report["baseline"] = {
+                "generated_at": previous.get("generated_at"),
+                "schema_version": previous.get("schema_version"),
+                "prompt_version": previous.get("prompt_version"),
+                "providers": baseline_providers,
+            }
     json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(_render_markdown(report), encoding="utf-8")
     return json_path, md_path
@@ -350,7 +391,7 @@ def main() -> None:
     report = run_benchmark(extractors, cases)
     json_path, md_path = write_reports(report)
 
-    print("AI extraction benchmark (AI-0)")
+    print(f"AI extraction benchmark (prompt={EXTRACTION_PROMPT_VERSION})")
     print(f"Cases selected: {len(cases)}")
     for case in report["cases"]:
         print(f"  - {case['case']}: {case['conversation_id']} ({case['message_count']} msgs)")

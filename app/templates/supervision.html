@@ -113,6 +113,8 @@
         <button type="submit">Filtrar</button>
         <a href="/supervision">Todos</a>
       </form>
+      <section aria-label="Gestión comercial">
+      <h2 style="font-size:1.1rem;">Gestión comercial ({{ pagination.total }} resultados)</h2>
       {% if rows %}
       <table>
         <thead>
@@ -139,7 +141,7 @@
       <div class="empty">Sin asignaciones para los criterios seleccionados.</div>
       {% endif %}
       {% if pagination.total_pages > 1 %}
-      <nav aria-label="Paginación" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
+      <nav aria-label="Paginación de gestión comercial" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
         {% if pagination.prev_url %}
         <a href="{{ pagination.prev_url }}">Anterior</a>
         {% endif %}
@@ -149,10 +151,12 @@
         {% endif %}
       </nav>
       {% endif %}
+      </section>
 
-      <section style="margin-top:2rem;">
-        <h2 style="font-size:1.1rem;">Pendientes de asignación ({{ overflow_total }})</h2>
+      <section aria-label="Pendientes de asignación" style="margin-top:2rem;background:#fff;border:1px solid #cbd5e1;border-radius:0.5rem;padding:1rem 1.25rem;">
+        <h2 style="font-size:1.1rem;margin-top:0;">Pendientes de asignación ({{ pending_pagination.total }})</h2>
         <p style="color:#475569;font-size:0.9rem;margin:0.25rem 0 0.75rem;">
+          Listado independiente de la paginación de gestión comercial.
           No se asignaron porque no había capacidad disponible en el grupo
           <strong>empresa + punto de venta</strong> (<code>sin_capacidad</code>).
           No se reasignan a otro punto de venta.
@@ -192,6 +196,17 @@
         </table>
         {% else %}
         <div class="empty">Sin pendientes de asignación.</div>
+        {% endif %}
+        {% if pending_pagination.total_pages > 1 %}
+        <nav aria-label="Paginación de pendientes" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
+          {% if pending_pagination.prev_url %}
+          <a href="{{ pending_pagination.prev_url }}">Anterior</a>
+          {% endif %}
+          <span>Pendientes: página {{ pending_pagination.page }} de {{ pending_pagination.total_pages }} ({{ pending_pagination.total }} en espera)</span>
+          {% if pending_pagination.next_url %}
+          <a href="{{ pending_pagination.next_url }}">Siguiente</a>
+          {% endif %}
+        </nav>
         {% endif %}
       </section>
     </main>

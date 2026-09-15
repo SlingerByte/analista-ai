@@ -78,7 +78,7 @@ def _build_db(maker):
                 company_id="EMP-01", point_of_sale_id="PV-001",
                 run_date=DAY, strategy_version="v1", priority_rank=i + 1,
                 status="assigned", reason="rank por prioridad", is_current=True))
-        for j in range(5):
+        for j in range(60):
             lead_id = f"LD-OV-{j}"
             session.add(Lead(
                 lead_id=lead_id, company_id="EMP-01", point_of_sale_id="PV-001",
@@ -170,7 +170,7 @@ def test_supervision_page_size_is_50():
 def test_supervision_page1_shows_first_50(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision")
-    assert "Página 1 de 2" in text
+    assert "Página 1 de 3" in text
     assert "Cliente 00" in text
     assert "Cliente 49" in text
     assert "Cliente 50" not in text
@@ -179,7 +179,7 @@ def test_supervision_page1_shows_first_50(sup_env):
 def test_supervision_page2_shows_rest(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision?page=2")
-    assert "Página 2 de 2" in text
+    assert "Página 2 de 3" in text
     assert "Cliente 50" in text
     assert "Cliente 59" in text
     assert "Cliente 00" not in text
@@ -188,15 +188,15 @@ def test_supervision_page2_shows_rest(sup_env):
 def test_supervision_page_out_of_range_clamps_to_last(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision?page=99")
-    assert "Página 2 de 2" in text
-    assert "Cliente 59" in text
+    assert "Página 3 de 3" in text
+    assert "Overflow 59" in text
 
 
 @pytest.mark.parametrize("bad_page", ["0", "-1", "abc", ""])
 def test_supervision_invalid_page_falls_back_to_first(sup_env, bad_page):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, f"/supervision?page={bad_page}")
-    assert "Página 1 de 2" in text
+    assert "Página 1 de 3" in text
     assert "Cliente 00" in text
 
 
@@ -240,6 +240,66 @@ def test_supervision_overflow_visible_on_both_pages(sup_env):
     assert "Overflow 0" in _get_text(client, "/supervision?page=2")
 
 
+# --- Separación gestión vs pendientes --------------------------------------------
+
+
+def test_supervision_sections_are_separate(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision")
+    assert "Gestión comercial" in text
+    assert "Pendientes de asignación" in text
+    assert 'aria-label="Paginación de gestión comercial"' in text
+    assert 'aria-label="Paginación de pendientes"' in text
+    assert "Listado independiente de la paginación de gestión comercial" in text
+
+
+def test_pending_pagination_is_independent(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    # ppage=2 cambia solo pendientes; gestión sigue en página 1.
+    text = _get_text(client, "/supervision?ppage=2")
+    assert "Página 1 de 3" in text
+    assert "Cliente 00" in text
+    assert "Overflow 50" in text
+    assert "Pendientes: página 2 de 2" in text
+    # page=2 no mueve pendientes (siguen en su página 1).
+    text = _get_text(client, "/supervision?page=2")
+    assert "Página 2 de 3" in text
+    assert "Overflow 0" in text
+    assert "Overflow 50" not in text
+
+
+def test_pending_invalid_ppage_clamps(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision?ppage=abc")
+    assert "Overflow 0" in text
+    text = _get_text(client, "/supervision?ppage=99")
+    assert "Pendientes: página 2 de 2" in text
+
+
+def test_pending_nav_preserves_filters_and_main_page(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision?pos=PV-001")
+    assert "ppage=2" in text
+    assert "pos=PV-001" in text
+    assert "page=1" in text
+
+
+def test_assigned_plus_pending_equals_candidates():
+    from app.assignment.service import (
+        AdvisorCapacity,
+        LeadCandidate,
+        plan_assignments,
+    )
+    candidates = [LeadCandidate(f"LD-{i}", "E", "P", queue=100.0 - i) for i in range(7)]
+    advisors = [AdvisorCapacity("A1", "E", "P", daily_capacity=3),
+                AdvisorCapacity("A2", "E", "P", daily_capacity=2)]
+    decisions = plan_assignments(candidates, advisors)
+    assigned = sum(1 for d in decisions if d.status == "assigned")
+    overflow = sum(1 for d in decisions if d.status == "overflow")
+    assert assigned + overflow == len(candidates)
+    assert (assigned, overflow) == (5, 2)
+
+
 # --- Seguridad ---------------------------------------------------------------------
 
 
@@ -259,8 +319,8 @@ def test_supervision_admin_sees_all_companies(sup_env):
     client = sup_env["make_client"]("adm@x")
     text = _get_text(client, "/supervision")
     assert "Supervisión global" in text
-    # EMP-02 va después de EMP-01 por el orden actual: Forastero está en página 2.
-    assert "Forastero" in _get_text(client, "/supervision?page=2")
+    # EMP-02 va después de EMP-01 por el orden actual: Forastero está en página 3.
+    assert "Forastero" in _get_text(client, "/supervision?page=3")
 
 
 # --- UI -------------------------------------------------------------------------------
@@ -269,7 +329,7 @@ def test_supervision_admin_sees_all_companies(sup_env):
 def test_supervision_pagination_links_preserve_filters(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision?pos=PV-001")
-    assert "Página 1 de 2" in text
+    assert "Página 1 de 3" in text
     assert "page=2" in text
     assert "pos=PV-001" in text
 

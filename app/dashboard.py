@@ -352,6 +352,7 @@ def supervision(
     retry_overflow: int | None = Query(default=None),
     retry_reused: int | None = Query(default=None),
     page: str | None = Query(default=None),
+    ppage: str | None = Query(default=None),
 ):
     if isinstance(user, RedirectResponse):
         return user
@@ -417,11 +418,25 @@ def supervision(
             .limit(PAGE_SIZE)
             .offset(offset)
         ).all()
+        status_counts = dict(session.execute(
+            sa.select(Assignment.status, sa.func.count())
+            .where(Assignment.assignment_id.in_(ids_select))
+            .group_by(Assignment.status)
+        ).all())
+        assigned_total = status_counts.get(STATUS_ASSIGNED, 0)
+        overflow_total = status_counts.get(STATUS_OVERFLOW, 0)
+        # Pendientes: paginación propia e independiente de la principal. La
+        # paginación de gestión (`page`) nunca controla esta sección.
+        pending_pages = max(1, math.ceil(overflow_total / PAGE_SIZE))
+        ppage_number = min(_parse_page(ppage), pending_pages)
+        poffset = (ppage_number - 1) * PAGE_SIZE
         overflow_assignments = session.scalars(
             sa.select(Assignment)
             .where(Assignment.assignment_id.in_(ids_select),
                    Assignment.status == STATUS_OVERFLOW)
             .order_by(*_supervision_order())
+            .limit(PAGE_SIZE)
+            .offset(poffset)
         ).all()
         leads, scores, catalogs, advisors = _batch_lead_details(
             session, list(page_assignments) + list(overflow_assignments))
@@ -468,10 +483,13 @@ def supervision(
         overflow_assignments = []
         leads = scores = catalogs = advisors = {}
         counts_rows = []
-        status_rows = []
         status_options = []
         pos_options = []
         advisor_options = []
+        assigned_total = 0
+        overflow_total = 0
+        pending_pages = 1
+        ppage_number = 1
 
     rows = []
     for assignment in page_assignments:
@@ -482,9 +500,6 @@ def supervision(
     for band, count in counts_rows:
         if band in counts:
             counts[band] += count
-    status_counts = dict(status_rows)
-    assigned_total = status_counts.get(STATUS_ASSIGNED, 0)
-    overflow_total = status_counts.get(STATUS_OVERFLOW, 0)
     overflow_rows = []
     for assignment in overflow_assignments:
         row = _supervision_row(assignment, leads, scores, catalogs, advisors)
@@ -506,15 +521,23 @@ def supervision(
         if value:
             base_params[key] = value
 
-    def _supervision_url(target_page: int) -> str:
-        return "/supervision?" + urlencode({**base_params, "page": target_page})
+    def _supervision_url(target_page: int, target_ppage: int) -> str:
+        return "/supervision?" + urlencode(
+            {**base_params, "page": target_page, "ppage": target_ppage})
 
     pagination = {
         "page": page_number,
         "total_pages": total_pages,
         "total": total,
-        "prev_url": _supervision_url(page_number - 1) if page_number > 1 else None,
-        "next_url": _supervision_url(page_number + 1) if page_number < total_pages else None,
+        "prev_url": _supervision_url(page_number - 1, ppage_number) if page_number > 1 else None,
+        "next_url": _supervision_url(page_number + 1, ppage_number) if page_number < total_pages else None,
+    }
+    pending_pagination = {
+        "page": ppage_number,
+        "total_pages": pending_pages,
+        "total": overflow_total,
+        "prev_url": _supervision_url(page_number, ppage_number - 1) if ppage_number > 1 else None,
+        "next_url": _supervision_url(page_number, ppage_number + 1) if ppage_number < pending_pages else None,
     }
     return templates.TemplateResponse(
         request=request,
@@ -532,6 +555,7 @@ def supervision(
             "overflow_total": overflow_total,
             "overflow_rows": overflow_rows,
             "pagination": pagination,
+            "pending_pagination": pending_pagination,
             "retry": {
                 "ran": retry is not None,
                 "assigned": retry_assigned,

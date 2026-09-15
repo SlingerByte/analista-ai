@@ -130,6 +130,44 @@ def _build_row(assignment: Assignment, lead: Lead, score: LeadScore | None,
 PAGE_SIZE = 50
 
 
+class SupervisionScope:
+    """Ámbito de supervisión ya resuelto (misma regla en ambas bandejas)."""
+
+    def __init__(self, companies: list[str], company_ids: list[str]) -> None:
+        self.companies = companies
+        self.company_ids = company_ids
+
+
+def _supervision_scope(session: Session, user: User, is_admin: bool,
+                       empresa: str | None, supervisor: str | None
+                       ) -> SupervisionScope:
+    """Resuelve el alcance por rol. Sin fallback amplio ante valores inválidos."""
+    companies = sorted(
+        session.scalars(sa.select(Company.company_id).order_by(Company.company_id)).all()
+    )
+    if is_admin:
+        # Ámbito global; la empresa se valida contra compañías reales.
+        # Valor desconocido → vacío (whitelist, nunca fallback amplio).
+        if not empresa:
+            scope_companies = list(companies)
+        elif empresa in companies:
+            scope_companies = [empresa]
+        else:
+            scope_companies = []
+        if supervisor:
+            sup = session.scalar(
+                sa.select(User).where(User.email == supervisor,
+                                      User.role == ROLE_SUPERVISOR))
+            if sup is None or sup.company_id is None:
+                scope_companies = []
+            else:
+                scope_companies = [sup.company_id]
+    else:
+        # Supervisor: su empresa, sin filtro de empresa.
+        scope_companies = [user.company_id]
+    return SupervisionScope(companies, scope_companies)
+
+
 def _parse_page(raw: str | None) -> int:
     """Página segura: inválidos, 0 y negativos → 1."""
     try:
@@ -159,7 +197,7 @@ def _model_label_column():
 def _supervision_ids_stmt(scope_companies: list[str], resolved: date,
                           pos: str | None, asesor: str | None,
                           banda: str | None, estado: str | None,
-                          modelo: str | None):
+                          modelo: str | None, status: str | None = None):
     """IDs de assignments del conjunto filtrado (sin paginar).
 
     Los filtros de banda/estado/modelo se aplican en SQL con JOINs para no
@@ -173,6 +211,8 @@ def _supervision_ids_stmt(scope_companies: list[str], resolved: date,
             Assignment.run_date == resolved,
         )
     )
+    if status:
+        stmt = stmt.where(Assignment.status == status)
     if pos:
         stmt = stmt.where(Assignment.point_of_sale_id == pos)
     if asesor:
@@ -352,7 +392,6 @@ def supervision(
     retry_overflow: int | None = Query(default=None),
     retry_reused: int | None = Query(default=None),
     page: str | None = Query(default=None),
-    ppage: str | None = Query(default=None),
 ):
     if isinstance(user, RedirectResponse):
         return user
@@ -361,29 +400,9 @@ def supervision(
         raise HTTPException(status_code=403, detail="La supervisión requiere rol supervisor")
     is_admin = user.role == ROLE_ADMIN
 
-    companies = sorted(
-        session.scalars(sa.select(Company.company_id).order_by(Company.company_id)).all()
-    )
-    if is_admin:
-        # Ámbito global; la empresa se valida contra compañías reales.
-        # Valor desconocido → vacío (whitelist, nunca fallback amplio).
-        if not empresa:
-            scope_companies = list(companies)
-        elif empresa in companies:
-            scope_companies = [empresa]
-        else:
-            scope_companies = []
-        if supervisor:
-            sup = session.scalar(
-                sa.select(User).where(User.email == supervisor,
-                                      User.role == ROLE_SUPERVISOR))
-            if sup is None or sup.company_id is None:
-                scope_companies = []
-            else:
-                scope_companies = [sup.company_id]
-    else:
-        # Supervisor: su empresa, sin filtro de empresa.
-        scope_companies = [user.company_id]
+    scope = _supervision_scope(session, user, is_admin, empresa, supervisor)
+    companies = scope.companies
+    scope_companies = scope.company_ids
 
     resolved = run_date or session.scalar(
         sa.select(sa.func.max(Assignment.run_date)).where(
@@ -425,21 +444,8 @@ def supervision(
         ).all())
         assigned_total = status_counts.get(STATUS_ASSIGNED, 0)
         overflow_total = status_counts.get(STATUS_OVERFLOW, 0)
-        # Pendientes: paginación propia e independiente de la principal. La
-        # paginación de gestión (`page`) nunca controla esta sección.
-        pending_pages = max(1, math.ceil(overflow_total / PAGE_SIZE))
-        ppage_number = min(_parse_page(ppage), pending_pages)
-        poffset = (ppage_number - 1) * PAGE_SIZE
-        overflow_assignments = session.scalars(
-            sa.select(Assignment)
-            .where(Assignment.assignment_id.in_(ids_select),
-                   Assignment.status == STATUS_OVERFLOW)
-            .order_by(*_supervision_order())
-            .limit(PAGE_SIZE)
-            .offset(poffset)
-        ).all()
         leads, scores, catalogs, advisors = _batch_lead_details(
-            session, list(page_assignments) + list(overflow_assignments))
+            session, list(page_assignments))
         counts_rows = session.execute(
             sa.select(LeadScore.band,
                       sa.func.count(sa.distinct(Assignment.assignment_id)))
@@ -480,7 +486,6 @@ def supervision(
         })
     else:
         page_assignments = []
-        overflow_assignments = []
         leads = scores = catalogs = advisors = {}
         counts_rows = []
         status_options = []
@@ -488,8 +493,6 @@ def supervision(
         advisor_options = []
         assigned_total = 0
         overflow_total = 0
-        pending_pages = 1
-        ppage_number = 1
 
     rows = []
     for assignment in page_assignments:
@@ -500,11 +503,6 @@ def supervision(
     for band, count in counts_rows:
         if band in counts:
             counts[band] += count
-    overflow_rows = []
-    for assignment in overflow_assignments:
-        row = _supervision_row(assignment, leads, scores, catalogs, advisors)
-        if row is not None:
-            overflow_rows.append(row)
     supervisor_options = sorted(
         email for (email,) in session.execute(
             sa.select(User.email).where(
@@ -521,23 +519,20 @@ def supervision(
         if value:
             base_params[key] = value
 
-    def _supervision_url(target_page: int, target_ppage: int) -> str:
-        return "/supervision?" + urlencode(
-            {**base_params, "page": target_page, "ppage": target_ppage})
+    def _supervision_url(target_page: int) -> str:
+        return "/supervision?" + urlencode({**base_params, "page": target_page})
 
     pagination = {
         "page": page_number,
         "total_pages": total_pages,
         "total": total,
-        "prev_url": _supervision_url(page_number - 1, ppage_number) if page_number > 1 else None,
-        "next_url": _supervision_url(page_number + 1, ppage_number) if page_number < total_pages else None,
+        "prev_url": _supervision_url(page_number - 1) if page_number > 1 else None,
+        "next_url": _supervision_url(page_number + 1) if page_number < total_pages else None,
     }
-    pending_pagination = {
-        "page": ppage_number,
-        "total_pages": pending_pages,
-        "total": overflow_total,
-        "prev_url": _supervision_url(page_number, ppage_number - 1) if ppage_number > 1 else None,
-        "next_url": _supervision_url(page_number, ppage_number + 1) if ppage_number < pending_pages else None,
+    tabs = {
+        "active": "gestion",
+        "pending_count": overflow_total,
+        "base_query": ("?" + urlencode(base_params)) if base_params else "",
     }
     return templates.TemplateResponse(
         request=request,
@@ -553,9 +548,9 @@ def supervision(
             "total": total,
             "assigned_total": assigned_total,
             "overflow_total": overflow_total,
-            "overflow_rows": overflow_rows,
             "pagination": pagination,
-            "pending_pagination": pending_pagination,
+            "tabs": tabs,
+            "filter_action": "/supervision",
             "retry": {
                 "ran": retry is not None,
                 "assigned": retry_assigned,
@@ -578,12 +573,180 @@ def supervision(
     )
 
 
+@router.get("/supervision/pending", response_class=HTMLResponse)
+def supervision_pending(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    run_date: date | None = Query(default=None),
+    empresa: str | None = Query(default=None),
+    supervisor: str | None = Query(default=None),
+    pos: str | None = Query(default=None),
+    asesor: str | None = Query(default=None),
+    banda: str | None = Query(default=None),
+    estado: str | None = Query(default=None),
+    modelo: str | None = Query(default=None),
+    retry: str | None = Query(default=None),
+    retry_assigned: int | None = Query(default=None),
+    retry_overflow: int | None = Query(default=None),
+    retry_reused: int | None = Query(default=None),
+    page: str | None = Query(default=None),
+):
+    """Bandeja de pendientes de asignación. Mismo scope y filtros que gestión."""
+    if isinstance(user, RedirectResponse):
+        return user
+    settings = get_settings()
+    if user.role not in (ROLE_SUPERVISOR, ROLE_ADMIN):
+        raise HTTPException(status_code=403, detail="La supervisión requiere rol supervisor")
+    is_admin = user.role == ROLE_ADMIN
+
+    scope = _supervision_scope(session, user, is_admin, empresa, supervisor)
+    scope_companies = scope.company_ids
+
+    resolved = run_date or session.scalar(
+        sa.select(sa.func.max(Assignment.run_date)).where(
+            Assignment.is_current.is_(True),
+            Assignment.company_id.in_(scope_companies) if scope_companies else sa.false())
+    )
+    if resolved and scope_companies:
+        ids_sub = _supervision_ids_stmt(
+            scope_companies, resolved, pos, asesor, banda, estado, modelo,
+            status=STATUS_OVERFLOW,
+        ).subquery()
+        pending_select = sa.select(ids_sub.c.assignment_id)
+        total = session.scalar(
+            sa.select(sa.func.count()).select_from(ids_sub)
+        ) or 0
+    else:
+        ids_sub = None
+        pending_select = None
+        total = 0
+
+    total_pages = max(1, math.ceil(total / PAGE_SIZE))
+    page_number = min(_parse_page(page), total_pages)
+    offset = (page_number - 1) * PAGE_SIZE
+
+    if total:
+        pending_assignments = session.scalars(
+            sa.select(Assignment)
+            .where(Assignment.assignment_id.in_(pending_select))
+            .order_by(*_supervision_order())
+            .limit(PAGE_SIZE)
+            .offset(offset)
+        ).all()
+        leads, scores, catalogs, advisors = _batch_lead_details(
+            session, list(pending_assignments))
+        status_options = sorted({
+            (status or UNKNOWN)
+            for (status,) in session.execute(
+                sa.select(Lead.status.distinct())
+                .select_from(Lead)
+                .join(Assignment, Assignment.lead_id == Lead.lead_id)
+                .where(Assignment.assignment_id.in_(pending_select))
+            ).all()
+        })
+        option_pairs = session.execute(
+            sa.select(Assignment.point_of_sale_id.distinct(),
+                      Assignment.advisor_id)
+            .where(
+                Assignment.is_current.is_(True),
+                Assignment.company_id.in_(scope_companies),
+                Assignment.run_date == resolved,
+                Assignment.status == STATUS_OVERFLOW,
+            )
+        ).all()
+        pos_options = sorted({pos_id for pos_id, _ in option_pairs if pos_id})
+        advisor_options = sorted({
+            advisor_id for pos_id, advisor_id in option_pairs
+            if advisor_id and (not pos or pos_id == pos)
+        })
+    else:
+        pending_assignments = []
+        leads = scores = catalogs = advisors = {}
+        status_options = []
+        pos_options = []
+        advisor_options = []
+
+    rows = []
+    for assignment in pending_assignments:
+        row = _supervision_row(assignment, leads, scores, catalogs, advisors)
+        if row is not None:
+            rows.append(row)
+    supervisor_options = sorted(
+        email for (email,) in session.execute(
+            sa.select(User.email).where(
+                User.role == ROLE_SUPERVISOR,
+                User.company_id.in_(scope_companies) if scope_companies else sa.false())
+        ).all()
+    ) if is_admin else []
+    base_params = {}
+    if run_date:
+        base_params["run_date"] = run_date.isoformat()
+    for key, value in (("empresa", empresa), ("supervisor", supervisor),
+                       ("pos", pos), ("asesor", asesor), ("banda", banda),
+                       ("estado", estado), ("modelo", modelo)):
+        if value:
+            base_params[key] = value
+
+    def _pending_url(target_page: int) -> str:
+        return "/supervision/pending?" + urlencode({**base_params, "page": target_page})
+
+    pagination = {
+        "page": page_number,
+        "total_pages": total_pages,
+        "total": total,
+        "prev_url": _pending_url(page_number - 1) if page_number > 1 else None,
+        "next_url": _pending_url(page_number + 1) if page_number < total_pages else None,
+    }
+    tabs = {
+        "active": "pendientes",
+        "pending_count": total,
+        "base_query": ("?" + urlencode(base_params)) if base_params else "",
+    }
+    return templates.TemplateResponse(
+        request=request,
+        name="supervision_pending.html",
+        context={
+            "app_name": settings.app_name,
+            "user": user,
+            "is_admin": is_admin,
+            "title": "Supervisión global" if is_admin else "Supervisión",
+            "company_label": None if is_admin else (scope_companies[0] if scope_companies else None),
+            "run_date": resolved.isoformat() if resolved else None,
+            "rows": rows,
+            "total": total,
+            "pagination": pagination,
+            "tabs": tabs,
+            "filter_action": "/supervision/pending",
+            "retry": {
+                "ran": retry is not None,
+                "assigned": retry_assigned,
+                "overflow": retry_overflow,
+                "reused": bool(retry_reused),
+            },
+            "counts": {"Alta": 0, "Media": 0, "Baja": 0},
+            "filters": {"empresa": empresa or "", "supervisor": supervisor or "",
+                        "pos": pos or "", "asesor": asesor or "",
+                        "banda": banda or "", "estado": estado or "",
+                        "modelo": modelo or ""},
+            "company_options": scope.companies if is_admin else [],
+            "supervisor_options": supervisor_options,
+            "pos_options": pos_options,
+            "advisor_options": advisor_options,
+            "band_options": ["Alta", "Media", "Baja"],
+            "status_options": status_options,
+            "page_size": PAGE_SIZE,
+        },
+    )
+
+
 @router.post("/supervision/retry-assignment")
 def retry_assignment_action(
     request: Request,
     session: Session = Depends(get_session),
     user: User | RedirectResponse = Depends(require_login),
     empresa: str | None = Form(default=None),
+    return_to: str | None = Form(default=None),
 ):
     """Reintenta la asignación determinista sobre los pendientes (scoped)."""
     if isinstance(user, RedirectResponse):
@@ -618,9 +781,11 @@ def retry_assignment_action(
     ) or date.today()
 
     report = retry_assignment(session, resolved, company_ids=scope)
+    # Destino de vuelta restringido a las dos bandejas (sin open redirect).
+    base = "/supervision/pending" if return_to == "/supervision/pending" else "/supervision"
     return RedirectResponse(
         url=(
-            "/supervision?retry=1"
+            f"{base}?retry=1"
             f"&retry_assigned={report['assigned']}"
             f"&retry_overflow={report['overflow']}"
             f"&retry_reused={1 if report['reused'] else 0}"

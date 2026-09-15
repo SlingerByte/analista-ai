@@ -1,0 +1,14 @@
+{# Pestañas de bandejas. Requiere: tabs.active ("gestion"|"pendientes"),
+   tabs.pending_count, tabs.base_query (filtros preservados sin page). #}
+      <nav aria-label="Bandejas de supervisión" style="display:flex;gap:0.5rem;margin:0 0 1rem;">
+        {% if tabs.active == "gestion" %}
+        <strong style="background:#312e81;color:#fff;border-radius:0.5rem;padding:0.5rem 1rem;">Gestión comercial</strong>
+        {% else %}
+        <a href="/supervision{{ tabs.base_query }}" style="background:#fff;border:1px solid #cbd5e1;border-radius:0.5rem;padding:0.5rem 1rem;text-decoration:none;">Gestión comercial</a>
+        {% endif %}
+        {% if tabs.active == "pendientes" %}
+        <strong style="background:#312e81;color:#fff;border-radius:0.5rem;padding:0.5rem 1rem;">Pendientes de asignación ({{ tabs.pending_count }})</strong>
+        {% else %}
+        <a href="/supervision/pending{{ tabs.base_query }}" style="background:#fff;border:1px solid #cbd5e1;border-radius:0.5rem;padding:0.5rem 1rem;text-decoration:none;">Pendientes de asignación ({{ tabs.pending_count }})</a>
+        {% endif %}
+      </nav>

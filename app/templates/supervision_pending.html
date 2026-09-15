@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title }} | {{ app_name }}</title>
+    <title>Pendientes de asignación | {{ app_name }}</title>
     <style>
       :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
       body { margin: 0; background: #f1f5f9; color: #0f172a; }
@@ -11,11 +11,6 @@
       header h1 { margin: 0; font-size: 1.25rem; }
       header p { margin: 0.25rem 0 0; color: #c7d2fe; font-size: 0.9rem; }
       main { max-width: 80rem; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
-      .cards { display: flex; gap: 1rem; margin: 1rem 0; flex-wrap: wrap; }
-      .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
-              padding: 0.75rem 1.25rem; min-width: 8rem; }
-      .card strong { display: block; font-size: 1.5rem; }
-      .card span { font-size: 0.85rem; color: #475569; }
       form.filters { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
                      padding: 0.75rem 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;
                      align-items: end; margin-bottom: 1rem; }
@@ -43,13 +38,6 @@
     </header>
     <main>
       {% include "_supervision_tabs.html" %}
-      <section class="cards" aria-label="Resumen">
-        <div class="card"><strong>{{ assigned_total }}</strong><span>Total asignados</span></div>
-        <div class="card"><strong>{{ overflow_total }}</strong><span>Pendientes de asignación</span></div>
-        <div class="card"><strong>{{ counts.Alta }}</strong><span>Prioridad Alta</span></div>
-        <div class="card"><strong>{{ counts.Media }}</strong><span>Prioridad Media</span></div>
-        <div class="card"><strong>{{ counts.Baja }}</strong><span>Prioridad Baja</span></div>
-      </section>
       {% if retry.ran %}
       <p style="background:#dbeafe;border:1px solid #93c5fd;border-radius:0.5rem;padding:0.6rem 1rem;color:#1e3a8a;">
         Reintento ejecutado: <strong>{{ retry.assigned }}</strong> asignados ·
@@ -58,39 +46,57 @@
       </p>
       {% endif %}
       {% include "_supervision_filters.html" %}
-      <section aria-label="Gestión comercial">
-      <h2 style="font-size:1.1rem;">Gestión comercial ({{ pagination.total }} resultados)</h2>
+      <section aria-label="Pendientes de asignación">
+      <h2 style="font-size:1.1rem;">Pendientes de asignación ({{ pagination.total }})</h2>
+      <p style="color:#475569;font-size:0.9rem;margin:0.25rem 0 0.75rem;">
+        Leads que cumplen las condiciones de gestión pero no pudieron ser asignados
+        por falta de capacidad disponible en su punto de venta.
+        No se reasignan a otro punto de venta.
+      </p>
+      {% if is_admin %}
+      <form method="post" action="/supervision/retry-assignment" style="margin-bottom:1rem;">
+        <input type="hidden" name="empresa" value="{{ filters.empresa }}" />
+        <input type="hidden" name="return_to" value="/supervision/pending" />
+        <button type="submit">Reintentar asignación</button>
+      </form>
+      {% else %}
+      <form method="post" action="/supervision/retry-assignment" style="margin-bottom:1rem;">
+        <input type="hidden" name="return_to" value="/supervision/pending" />
+        <button type="submit">Reintentar asignación</button>
+      </form>
+      {% endif %}
       {% if rows %}
       <table>
         <thead>
-          <tr><th>Cliente</th><th>Empresa</th><th>POS</th><th>Asesor</th><th>Modelo</th><th>Estado</th><th>Prioridad</th><th>Score</th><th>#</th><th></th></tr>
+          <tr><th>#</th><th>Empresa</th><th>POS</th><th>Cliente</th><th>Modelo</th><th>Estado</th><th>Prioridad</th><th>Score</th><th>Registro</th><th>Motivo</th><th></th></tr>
         </thead>
         <tbody>
           {% for row in rows %}
           <tr>
-            <td>{{ row.lead.customer_name or 'Sin nombre' }}</td>
+            <td>{{ row.assignment.priority_rank }}</td>
             <td>{{ row.lead.company_id }}</td>
             <td>{{ row.lead.point_of_sale_id }}</td>
-            <td>{{ row.owner_name }}{% if row.assignment.advisor_id %} ({{ row.assignment.advisor_id }}){% endif %}</td>
+            <td>{{ row.lead.customer_name or 'Sin nombre' }}</td>
             <td>{{ row.model }}</td>
-            <td>{{ row.lead.status or 'Desconocido' }}</td>
+            <td>{{ row.status }}</td>
             <td><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
             <td>{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
-            <td>{{ row.assignment.priority_rank }}</td>
+            <td>{{ row.lead.registration_at.strftime('%Y-%m-%d') if row.lead.registration_at else 'Desconocido' }}</td>
+            <td><code>{{ row.assignment.reason }}</code> — sin capacidad en {{ row.lead.company_id }}/{{ row.lead.point_of_sale_id }}</td>
             <td><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
       {% else %}
-      <div class="empty">Sin asignaciones para los criterios seleccionados.</div>
+      <div class="empty">Sin pendientes de asignación.</div>
       {% endif %}
       {% if pagination.total_pages > 1 %}
-      <nav aria-label="Paginación de gestión comercial" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
+      <nav aria-label="Paginación de pendientes" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
         {% if pagination.prev_url %}
         <a href="{{ pagination.prev_url }}">Anterior</a>
         {% endif %}
-        <span>Página {{ pagination.page }} de {{ pagination.total_pages }} ({{ pagination.total }} resultados)</span>
+        <span>Página {{ pagination.page }} de {{ pagination.total_pages }} ({{ pagination.total }} en espera)</span>
         {% if pagination.next_url %}
         <a href="{{ pagination.next_url }}">Siguiente</a>
         {% endif %}

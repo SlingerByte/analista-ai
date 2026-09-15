@@ -107,6 +107,19 @@ def _build_db(maker):
             company_id="EMP-02", point_of_sale_id="PV-006",
             run_date=DAY, strategy_version="v1", priority_rank=1,
             status="assigned", reason="rank por prioridad", is_current=True))
+        session.add(Lead(
+            lead_id="LD-OTHER-OV", company_id="EMP-02", point_of_sale_id="PV-006",
+            customer_name="Forastero Pendiente", status="Contactado",
+            raw_payload={}, record_hash="other-ov"))
+        session.add(LeadScore(
+            lead_id="LD-OTHER-OV", score_version="v1", priority_score=4.0,
+            urgency_score=1.0, queue_score=4.0, band="Baja",
+            reasons=[], is_current=True))
+        session.add(Assignment(
+            lead_id="LD-OTHER-OV", advisor_id=None,
+            company_id="EMP-02", point_of_sale_id="PV-006",
+            run_date=DAY, strategy_version="v1", priority_rank=2,
+            status="overflow", reason="sin_capacidad", is_current=True))
         session.commit()
 
 
@@ -176,6 +189,30 @@ def test_supervision_page1_shows_first_50(sup_env):
     assert "Cliente 50" not in text
 
 
+def test_supervision_shows_gestion_without_pending_table(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision")
+    assert "Gestión comercial" in text
+    assert 'aria-label="Gestión comercial"' in text
+    assert 'aria-label="Pendientes de asignación"' not in text
+    assert "Overflow 0" not in text
+    # El contador de la otra bandeja sí es visible en las tabs.
+    assert "Pendientes de asignación (60)" in text
+
+
+def test_pending_shows_pending_without_gestion_table(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision/pending")
+    assert "Pendientes de asignación" in text
+    assert 'aria-label="Pendientes de asignación"' in text
+    assert 'aria-label="Gestión comercial"' not in text
+    assert "Overflow 0" in text
+    assert "Cliente 00" not in text
+    assert "Página 1 de 2" in text
+    assert "falta de capacidad disponible en su punto de venta" in text
+    assert "Reintentar asignación" in text
+
+
 def test_supervision_page2_shows_rest(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision?page=2")
@@ -234,10 +271,43 @@ def test_supervision_filter_asesor_y_pos(sup_env):
     assert "Cliente 00" in text
 
 
-def test_supervision_overflow_visible_on_both_pages(sup_env):
+def test_supervision_has_no_pending_section(sup_env):
+    # La bandeja de pendientes vive en su propia ruta; gestión nunca renderiza
+    # la sección (aunque filas overflow sí aparecen como resultados).
     client = sup_env["make_client"]("sup@x")
-    assert "Overflow 0" in _get_text(client, "/supervision")
-    assert "Overflow 0" in _get_text(client, "/supervision?page=2")
+    assert "Overflow 0" in _get_text(client, "/supervision/pending")
+    assert "Overflow 0" in _get_text(client, "/supervision/pending?page=1")
+    for path in ("/supervision", "/supervision?page=2"):
+        text = _get_text(client, path)
+        assert 'aria-label="Pendientes de asignación"' not in text
+        assert 'aria-label="Paginación de pendientes"' not in text
+
+
+def test_pending_pagination_is_independent(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision/pending?page=2")
+    assert "Página 2 de 2" in text
+    assert "Overflow 50" in text
+    assert "Overflow 0" not in text
+    # Gestión no se ve afectada por la página de pendientes.
+    assert "Cliente 00" not in text
+
+
+def test_pending_invalid_page_clamps(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    assert "Overflow 0" in _get_text(client, "/supervision/pending?page=abc")
+    assert "Overflow 0" in _get_text(client, "/supervision/pending?page=0")
+    text = _get_text(client, "/supervision/pending?page=99")
+    assert "Página 2 de 2" in text
+    assert "Overflow 59" in text
+
+
+def test_pending_filter_and_nav_preserve_filters(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    text = _get_text(client, "/supervision/pending?pos=PV-001")
+    assert "Overflow 0" in text
+    assert "page=2" in text
+    assert "pos=PV-001" in text
 
 
 # --- Separación gestión vs pendientes --------------------------------------------
@@ -247,41 +317,11 @@ def test_supervision_sections_are_separate(sup_env):
     client = sup_env["make_client"]("sup@x")
     text = _get_text(client, "/supervision")
     assert "Gestión comercial" in text
-    assert "Pendientes de asignación" in text
-    assert 'aria-label="Paginación de gestión comercial"' in text
-    assert 'aria-label="Paginación de pendientes"' in text
-    assert "Listado independiente de la paginación de gestión comercial" in text
-
-
-def test_pending_pagination_is_independent(sup_env):
-    client = sup_env["make_client"]("sup@x")
-    # ppage=2 cambia solo pendientes; gestión sigue en página 1.
-    text = _get_text(client, "/supervision?ppage=2")
-    assert "Página 1 de 3" in text
-    assert "Cliente 00" in text
-    assert "Overflow 50" in text
-    assert "Pendientes: página 2 de 2" in text
-    # page=2 no mueve pendientes (siguen en su página 1).
-    text = _get_text(client, "/supervision?page=2")
-    assert "Página 2 de 3" in text
-    assert "Overflow 0" in text
-    assert "Overflow 50" not in text
-
-
-def test_pending_invalid_ppage_clamps(sup_env):
-    client = sup_env["make_client"]("sup@x")
-    text = _get_text(client, "/supervision?ppage=abc")
-    assert "Overflow 0" in text
-    text = _get_text(client, "/supervision?ppage=99")
-    assert "Pendientes: página 2 de 2" in text
-
-
-def test_pending_nav_preserves_filters_and_main_page(sup_env):
-    client = sup_env["make_client"]("sup@x")
-    text = _get_text(client, "/supervision?pos=PV-001")
-    assert "ppage=2" in text
-    assert "pos=PV-001" in text
-    assert "page=1" in text
+    assert 'aria-label="Gestión comercial"' in text
+    # Sin sección de pendientes: solo el tab con su contador.
+    assert 'aria-label="Pendientes de asignación"' not in text
+    assert 'aria-label="Paginación de pendientes"' not in text
+    assert "/supervision/pending" in text
 
 
 def test_assigned_plus_pending_equals_candidates():
@@ -306,6 +346,7 @@ def test_assigned_plus_pending_equals_candidates():
 def test_supervision_advisor_is_forbidden(sup_env):
     client = sup_env["make_client"]("adv@x")
     assert client.get("/supervision").status_code == 403
+    assert client.get("/supervision/pending").status_code == 403
 
 
 def test_supervision_supervisor_scoped_to_company(sup_env):
@@ -313,6 +354,10 @@ def test_supervision_supervisor_scoped_to_company(sup_env):
     text = _get_text(client, "/supervision")
     assert "Cliente 00" in text
     assert "Forastero" not in text
+    pending = _get_text(client, "/supervision/pending")
+    assert "Overflow 0" in pending
+    assert "Forastero Pendiente" not in pending
+    assert "Forastero" not in pending
 
 
 def test_supervision_admin_sees_all_companies(sup_env):
@@ -321,6 +366,20 @@ def test_supervision_admin_sees_all_companies(sup_env):
     assert "Supervisión global" in text
     # EMP-02 va después de EMP-01 por el orden actual: Forastero está en página 3.
     assert "Forastero" in _get_text(client, "/supervision?page=3")
+    pending = _get_text(client, "/supervision/pending?page=2")
+    assert "Forastero Pendiente" in pending
+
+
+def test_retry_returns_to_origin_bandeja(sup_env):
+    client = sup_env["make_client"]("sup@x")
+    response = client.post("/supervision/retry-assignment",
+                           data={"return_to": "/supervision/pending"})
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/supervision/pending?retry=1")
+    response = client.post("/supervision/retry-assignment",
+                           data={"return_to": "https://evil.example/"})
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/supervision?retry=1")
 
 
 # --- UI -------------------------------------------------------------------------------
@@ -341,6 +400,11 @@ def test_supervision_queries_do_not_grow_per_row(sup_env):
     client = sup_env["make_client"]("sup@x")
     _, queries_page1 = _count_queries(sup_env["engine"], client, "/supervision")
     _, queries_page2 = _count_queries(sup_env["engine"], client, "/supervision?page=2")
-    # 50 filas vs 15 filas: con N+1 diferirían en ~100 queries; en batch son iguales.
+    # 50 filas vs 50 filas: con N+1 diferirían; en batch son iguales.
     assert queries_page1 == queries_page2
     assert queries_page1 <= 30, queries_page1
+    _, pending_q1 = _count_queries(sup_env["engine"], client, "/supervision/pending")
+    _, pending_q2 = _count_queries(sup_env["engine"], client,
+                                   "/supervision/pending?page=2")
+    assert pending_q1 == pending_q2
+    assert pending_q1 <= 30, pending_q1

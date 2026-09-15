@@ -1,0 +1,60 @@
+{# Formulario de filtros compartido. Requiere: filter_action, is_admin,
+   company_options, supervisor_options, advisor_options, pos_options,
+   band_options, status_options, filters. #}
+      <form class="filters" method="get" action="{{ filter_action }}">
+        {% if is_admin %}
+        <label>Empresa
+          <select name="empresa">
+            <option value="">Todas</option>
+            {% for option in company_options %}
+            <option value="{{ option }}" {% if filters.empresa == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Supervisor
+          <select name="supervisor">
+            <option value="">Todos</option>
+            {% for option in supervisor_options %}
+            <option value="{{ option }}" {% if filters.supervisor == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        <label>Asesor
+          <select name="asesor">
+            <option value="">Todos</option>
+            {% for option in advisor_options %}
+            <option value="{{ option }}" {% if filters.asesor == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Punto de venta
+          <select name="pos">
+            <option value="">Todos</option>
+            {% for option in pos_options %}
+            <option value="{{ option }}" {% if filters.pos == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Relevancia
+          <select name="banda">
+            <option value="">Todas</option>
+            {% for option in band_options %}
+            <option value="{{ option }}" {% if filters.banda == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Estado
+          <select name="estado">
+            <option value="">Todos</option>
+            {% for option in status_options %}
+            <option value="{{ option }}" {% if filters.estado == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Modelo
+          <input type="text" name="modelo" value="{{ filters.modelo }}" placeholder="p. ej. Navi" />
+        </label>
+        <button type="submit">Filtrar</button>
+        <a href="{{ filter_action }}">Todos</a>
+      </form>

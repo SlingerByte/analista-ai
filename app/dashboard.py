@@ -22,6 +22,12 @@ from app.auth import ROLE_ADVISOR, ROLE_ADMIN, ROLE_SUPERVISOR, require_login
 from app.config import get_settings
 from app.db import get_session
 from app.models import Advisor, Assignment, CatalogItem, Company, Conversation, Lead, LeadScore, User
+from app.presentation import (
+    dimension_label,
+    score_reason_label,
+    sender_class,
+    sender_label,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -436,15 +442,37 @@ def lead_detail(
     ).all()
     conv_rows = []
     for conversation in conversations:
-        messages = conversation.messages or []
+        messages = [m for m in (conversation.messages or []) if isinstance(m, dict)]
+        ordered = sorted(
+            messages,
+            key=lambda m: m.get("seq") if isinstance(m.get("seq"), int) else 0,
+        )
         extraction = get_current_extraction(session, conversation.conversation_id)
         conv_rows.append(
             {
                 "conversation": conversation,
                 "message_count": len(messages),
                 "fields": dict(extraction.fields) if extraction and extraction.fields else {},
+                "messages": [
+                    {
+                        "sender_label": sender_label(m.get("sender")),
+                        "sender_class": sender_class(m.get("sender")),
+                        "hour": str(m.get("hour") or ""),
+                        "text": str(m.get("text") or ""),
+                    }
+                    for m in ordered
+                ],
             }
         )
+    reasons_display = [
+        {
+            "label": score_reason_label(reason.get("code")),
+            "dimension": dimension_label(reason.get("dimension")),
+            "text": reason.get("text"),
+            "contribution": reason.get("contribution"),
+        }
+        for reason in _priority_reasons(score.reasons if score else None)
+    ]
     return templates.TemplateResponse(
         request=request,
         name="lead_detail.html",
@@ -460,7 +488,7 @@ def lead_detail(
             "score": score,
             "model": _model_label(lead, catalog),
             "city": _city_label(lead),
-            "reasons": _priority_reasons(score.reasons if score else None),
+            "reasons": reasons_display,
             "conversations": conv_rows,
             "unknown": UNKNOWN,
             "bool_label": _bool_label,

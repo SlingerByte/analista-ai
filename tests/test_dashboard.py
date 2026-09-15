@@ -226,7 +226,8 @@ def test_fecha_sin_asignaciones_muestra_vacio(client):
 
 def test_detalle_muestra_razones_y_senales(client):
     text = response_text(client, "/leads/LD-A")
-    assert "INTENCION_ALTA" in text
+    assert "Intención de compra alta" in text
+    assert "INTENCION_ALTA" not in text
     assert "Quiere comprar" in text
     assert "financiacion" in text
     assert "ranking #1" in text
@@ -235,8 +236,8 @@ def test_detalle_muestra_razones_y_senales(client):
 
 def test_explicacion_prioridad_no_mezcla_quality(client):
     text = response_text(client, "/leads/LD-A")
-    # La razón comercial sí explica la prioridad.
-    assert "INTENCION_ALTA" in text
+    # La razón comercial sí explica la prioridad (con etiqueta humana).
+    assert "Intención de compra alta" in text
     # La calidad es dimensión separada: no aparece como contribución de prioridad.
     assert "TELEFONO_VALIDO" not in text
     assert "calidad del dato" in text.lower()

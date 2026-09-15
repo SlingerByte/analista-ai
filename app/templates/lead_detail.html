@@ -26,6 +26,17 @@
       .badge-alta { color: #991b1b; border-color: #991b1b; background: #fee2e2; }
       .badge-media { color: #92400e; border-color: #92400e; background: #fef3c7; }
       .badge-baja { color: #1e40af; border-color: #1e40af; background: #dbeafe; }
+      .evidence { color: #475569; font-size: 0.8rem; font-weight: 400; font-style: italic; }
+      .conv { border: 1px solid #e2e8f0; border-radius: 0.5rem;
+              padding: 0.75rem 1rem; margin-bottom: 1rem; }
+      .chat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem;
+              padding: 0.75rem; margin-top: 0.5rem; }
+      .msg { margin: 0.4rem 0; padding: 0.4rem 0.6rem; border-radius: 0.5rem; max-width: 85%; }
+      .msg-meta { font-size: 0.75rem; color: #64748b; margin-bottom: 0.15rem; }
+      .msg-text { white-space: pre-wrap; word-break: break-word; }
+      .msg-cliente { background: #dbeafe; margin-left: auto; }
+      .msg-asesor { background: #e2e8f0; margin-right: auto; }
+      .msg-otro { background: #fef3c7; margin-right: auto; }
       a { color: #1d4ed8; }
     </style>
   </head>
@@ -64,10 +75,10 @@
           dimensión separada y no modifica la prioridad.
         </p>
         <table>
-          <thead><tr><th>Código</th><th>Dimensión</th><th>Detalle</th><th>Contribución</th></tr></thead>
+          <thead><tr><th>Razón</th><th>Dimensión</th><th>Detalle</th><th>Contribución</th></tr></thead>
           <tbody>
             {% for reason in reasons %}
-            <tr><td>{{ reason.code }}</td><td>{{ reason.dimension }}</td><td>{{ reason.text }}</td><td>{{ '%+.1f' % reason.contribution }}</td></tr>
+            <tr><td>{{ reason.label }}</td><td>{{ reason.dimension }}</td><td>{{ reason.text }}</td><td>{{ '%+.1f' % reason.contribution }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -80,21 +91,42 @@
         <h2>Señales de IA por conversación</h2>
         {% if conversations %}
         {% for item in conversations %}
-        <h3>{{ item.conversation.conversation_id }} · {{ item.conversation.channel or 'Sin canal' }} · {{ item.message_count }} mensajes</h3>
-        {% set fields = item.fields %}
-        {% if fields %}
-        <dl>
-          <dt>Intención de compra</dt><dd>{{ fields.intencion_compra or 'Desconocido' }}</dd>
-          <dt>Presupuesto</dt><dd>{{ fields.presupuesto if fields.presupuesto is not none else 'Desconocido' }}</dd>
-          <dt>Cuota inicial</dt><dd>{{ fields.cuota_inicial if fields.cuota_inicial is not none else 'Desconocido' }}</dd>
-          <dt>Forma de pago</dt><dd>{{ fields.forma_pago or 'Desconocido' }}</dd>
-          <dt>Objeción</dt><dd>{{ fields.objecion or 'Desconocido' }}</dd>
-          <dt>Solicitó cita</dt><dd>{{ bool_label(fields.solicitud_cita) }}</dd>
-          <dt>Solicitó cotización</dt><dd>{{ bool_label(fields.solicitud_cotizacion) }}</dd>
-        </dl>
-        {% else %}
-        <p class="unknown">Sin extracción IA vigente para esta conversación.</p>
-        {% endif %}
+        <div class="conv">
+          <h3 style="margin:0 0 0.25rem;">{{ item.conversation.conversation_id }} · {{ item.conversation.channel or 'Sin canal' }} · {{ item.message_count }} mensajes</h3>
+          {% set fields = item.fields %}
+          {% if fields %}
+          <h4 style="margin:0.5rem 0 0.25rem;font-size:0.9rem;color:#334155;">Señales de IA (interpretación)</h4>
+          <dl>
+            <dt>Modelo de interés</dt><dd>{{ fields.model_interes or 'Desconocido' }}{% if fields.model_interes_evidence %}<br><span class="evidence">Evidencia: «{{ fields.model_interes_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Intención de compra</dt><dd>{{ fields.intencion_compra or 'Desconocido' }}{% if fields.intencion_compra_evidence %}<br><span class="evidence">Evidencia: «{{ fields.intencion_compra_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Presupuesto</dt><dd>{{ fields.presupuesto if fields.presupuesto is not none else 'Desconocido' }}{% if fields.presupuesto_evidence %}<br><span class="evidence">Evidencia: «{{ fields.presupuesto_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Cuota inicial</dt><dd>{{ fields.cuota_inicial if fields.cuota_inicial is not none else 'Desconocido' }}{% if fields.cuota_inicial_evidence %}<br><span class="evidence">Evidencia: «{{ fields.cuota_inicial_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Forma de pago</dt><dd>{{ fields.forma_pago or 'Desconocido' }}{% if fields.forma_pago_evidence %}<br><span class="evidence">Evidencia: «{{ fields.forma_pago_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Objeción</dt><dd>{{ fields.objecion or 'Desconocido' }}{% if fields.objecion_evidence %}<br><span class="evidence">Evidencia: «{{ fields.objecion_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Solicitó cita</dt><dd>{{ bool_label(fields.solicitud_cita) }}{% if fields.solicitud_cita_evidence %}<br><span class="evidence">Evidencia: «{{ fields.solicitud_cita_evidence | e }}»</span>{% endif %}</dd>
+            <dt>Solicitó cotización</dt><dd>{{ bool_label(fields.solicitud_cotizacion) }}{% if fields.solicitud_cotizacion_evidence %}<br><span class="evidence">Evidencia: «{{ fields.solicitud_cotizacion_evidence | e }}»</span>{% endif %}</dd>
+          </dl>
+          {% else %}
+          <p class="unknown">Sin extracción IA vigente para esta conversación.</p>
+          {% endif %}
+
+          <details style="margin-top:0.5rem;">
+            <summary style="cursor:pointer;color:#1d4ed8;font-weight:600;">Ver conversación</summary>
+            <div class="chat">
+              <h4 style="margin:0.25rem 0 0.5rem;">Conversación original</h4>
+              {% if item.messages %}
+                {% for msg in item.messages %}
+                <div class="msg msg-{{ msg.sender_class }}">
+                  <div class="msg-meta">{{ msg.sender_label | e }}{% if msg.hour %} · {{ msg.hour | e }}{% endif %}</div>
+                  <div class="msg-text">{{ msg.text | e }}</div>
+                </div>
+                {% endfor %}
+              {% else %}
+                <p class="unknown">Sin mensajes registrados.</p>
+              {% endif %}
+            </div>
+          </details>
+        </div>
         {% endfor %}
         {% else %}
         <p class="unknown">Este lead no tiene conversaciones registradas.</p>

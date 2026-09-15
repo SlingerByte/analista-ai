@@ -1,0 +1,1259 @@
+{
+  "model": "openai/gpt-oss-20b",
+  "provider": "groq",
+  "prompt_version": "v2",
+  "schema_version": "v1",
+  "gold_set_source": "reports/gold_set.json",
+  "gold_set_size": 110,
+  "selection": [
+    {
+      "conversation_id": "CONV-00058",
+      "categories": [
+        "cambio_modelo",
+        "cita",
+        "conv58_obligatoria",
+        "cuota_inicial_explicita",
+        "intencion_alta",
+        "objecion_explicita"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00001",
+      "categories": [
+        "conversacion_corta",
+        "intencion_baja_media_informativa"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00002",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "intencion_baja_media_informativa",
+        "objecion_explicita"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00011",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "objecion_explicita",
+        "objecion_no_precio"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00003",
+      "categories": [
+        "cita",
+        "conversacion_larga",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_alta"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00004",
+      "categories": [
+        "cotizacion",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_baja_media_informativa"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00005",
+      "categories": [
+        "conversacion_corta",
+        "intencion_baja_media_informativa"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00006",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "objecion_explicita"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00007",
+      "categories": [
+        "cita",
+        "conversacion_larga",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_alta"
+      ]
+    },
+    {
+      "conversation_id": "CONV-00008",
+      "categories": [
+        "intencion_baja_media_informativa"
+      ]
+    }
+  ],
+  "evaluated": 10,
+  "graded": 8,
+  "persistence": "none",
+  "config": {
+    "max_requests": 15,
+    "timeout_s": 120.0,
+    "delay_between_s": 8.0,
+    "sequential": true,
+    "retry_policy": "429 sin retry (stop si cuota diaria); 5xx/timeout 1 retry con presupuesto"
+  },
+  "requests": {
+    "http_requests": 10,
+    "max_requests": 15,
+    "stopped_early": false,
+    "stop_reason": null
+  },
+  "availability": {
+    "total": 10,
+    "executed": 10,
+    "ok": 8,
+    "rate_limited": 2,
+    "timeouts": 0,
+    "errors": 0,
+    "total_429": 2,
+    "availability_rate": 0.8
+  },
+  "latency_ms": {
+    "avg": 1657.9,
+    "median": 1554.0,
+    "min": 1369,
+    "max": 2313,
+    "p95": 2313.0,
+    "n": 8
+  },
+  "schema": {
+    "evaluated": 8,
+    "valid": 8,
+    "schema_valid_rate": 1.0
+  },
+  "overall": {
+    "tp": 24,
+    "fp": 9,
+    "fn": 8,
+    "tn": 29,
+    "decisions": 70,
+    "accuracy": 0.7571,
+    "precision": 0.7273,
+    "recall": 0.75
+  },
+  "per_field": {
+    "model_interes": {
+      "total": 8,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0,
+      "wrong": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "null_rate": 0.0
+    },
+    "intencion_compra": {
+      "total": 8,
+      "tp": 3,
+      "fp": 5,
+      "fn": 3,
+      "tn": 0,
+      "wrong": 3,
+      "accuracy": 0.375,
+      "precision": 0.375,
+      "recall": 0.5,
+      "null_rate": 0.0
+    },
+    "forma_pago": {
+      "total": 8,
+      "tp": 4,
+      "fp": 1,
+      "fn": 1,
+      "tn": 3,
+      "wrong": 1,
+      "accuracy": 0.875,
+      "precision": 0.8,
+      "recall": 0.8,
+      "null_rate": 0.375
+    },
+    "objecion": {
+      "total": 8,
+      "tp": 0,
+      "fp": 3,
+      "fn": 4,
+      "tn": 3,
+      "wrong": 2,
+      "accuracy": 0.375,
+      "precision": 0.0,
+      "recall": 0.0,
+      "null_rate": 0.625
+    },
+    "presupuesto": {
+      "total": 8,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 8,
+      "wrong": 0,
+      "accuracy": 1.0,
+      "precision": null,
+      "recall": null,
+      "null_rate": 1.0
+    },
+    "cuota_inicial": {
+      "total": 8,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "wrong": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "null_rate": 0.625
+    },
+    "solicitud_cita": {
+      "total": 8,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 6,
+      "wrong": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "null_rate": 0.75
+    },
+    "solicitud_cotizacion": {
+      "total": 8,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "tn": 4,
+      "wrong": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "null_rate": 0.5
+    }
+  },
+  "error_analysis": {
+    "modelo": {
+      "mismatches": [],
+      "note": "posible confusión entre primer modelo mencionado y modelo vigente"
+    },
+    "intencion": {
+      "mismatches": [
+        "CONV-00002",
+        "CONV-00011",
+        "CONV-00004",
+        "CONV-00006",
+        "CONV-00008"
+      ],
+      "note": "informativa convertida en alta, o señales ('me sirve', 'voy') ignoradas"
+    },
+    "presupuesto": {
+      "mismatches": [],
+      "cuota_confudida_como_presupuesto": [],
+      "note": "gold presupuesto es null en todo el Gold Set: cualquier valor es invención"
+    },
+    "inicial": {
+      "mismatches": [],
+      "note": "cuota mensual del asesor convertida en inicial, o inicial del cliente ignorada"
+    },
+    "forma_pago": {
+      "mismatches": [
+        "CONV-00006"
+      ],
+      "cuota_implica_financiacion": [],
+      "note": "mencionar inicial no implica financiacion si el cliente no lo dijo"
+    },
+    "objecion": {
+      "mismatches": [
+        "CONV-00058",
+        "CONV-00002",
+        "CONV-00011",
+        "CONV-00004",
+        "CONV-00006"
+      ],
+      "note": "'muy cara' / 'mas economico' / 'cuota alta' detectadas o ignoradas"
+    },
+    "cita": {
+      "mismatches": [],
+      "note": "'los visito' / 'puedo pasar' detectadas; solo cliente cuenta como evidencia"
+    },
+    "cotizacion": {
+      "mismatches": [],
+      "note": "'dale' / 'ok' / 'listo' no son solicitud de cotización"
+    }
+  },
+  "conv_00058": {
+    "conversation_id": "CONV-00058",
+    "found_in_gold": true,
+    "status": "ok",
+    "validation_errors": {},
+    "comparison": [
+      {
+        "field": "model_interes",
+        "gold": "AKT NKD 125",
+        "groq": "AKT NKD 125",
+        "evidencia": "tipo la AKT NKD 125",
+        "veredicto": "correcto"
+      },
+      {
+        "field": "intencion_compra",
+        "gold": "alta",
+        "groq": "alta",
+        "evidencia": "Esa sí me sirve",
+        "veredicto": "correcto"
+      },
+      {
+        "field": "forma_pago",
+        "gold": null,
+        "groq": null,
+        "evidencia": null,
+        "veredicto": "correcto"
+      },
+      {
+        "field": "objecion",
+        "gold": "precio",
+        "groq": null,
+        "evidencia": null,
+        "veredicto": "incorrecto"
+      },
+      {
+        "field": "presupuesto",
+        "gold": null,
+        "groq": null,
+        "evidencia": null,
+        "veredicto": "correcto"
+      },
+      {
+        "field": "cuota_inicial",
+        "gold": 1000000.0,
+        "groq": 1000000.0,
+        "evidencia": "Tengo como 1 millonzitos de inicial",
+        "veredicto": "correcto"
+      },
+      {
+        "field": "solicitud_cita",
+        "gold": true,
+        "groq": true,
+        "evidencia": "¿Mañana los visito?",
+        "veredicto": "correcto"
+      },
+      {
+        "field": "solicitud_cotizacion",
+        "gold": null,
+        "groq": null,
+        "evidencia": null,
+        "veredicto": "correcto"
+      }
+    ]
+  },
+  "historical_comparison": {
+    "qwen2.5:3b": {
+      "accuracy": 0.644,
+      "precision": 0.8673,
+      "recall": 0.4033,
+      "n": 110
+    },
+    "llama3.2:3b": {
+      "accuracy": 0.6488,
+      "precision": 0.7477,
+      "recall": 0.4938,
+      "n": 110
+    },
+    "qwen2.5:7b": {
+      "accuracy": 0.6524,
+      "precision": 0.6758,
+      "recall": 0.6091,
+      "n": 110
+    },
+    "z-ai/glm-5.2:free (controlled,20)": {
+      "accuracy": null,
+      "precision": null,
+      "recall": null,
+      "n": 0,
+      "availability_rate": 0.0,
+      "note": "0/20 ok por cuota diaria OpenRouter: sin calidad observable"
+    }
+  },
+  "details": [
+    {
+      "conversation_id": "CONV-00058",
+      "outcome": {
+        "model_interes": {
+          "gold": "AKT NKD 125",
+          "pred": "AKT NKD 125",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "alta",
+          "pred": "alta",
+          "class": "tp"
+        },
+        "forma_pago": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "objecion": {
+          "gold": "precio",
+          "pred": null,
+          "class": "fn"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": 1000000.0,
+          "pred": 1000000.0,
+          "class": "tp"
+        },
+        "solicitud_cita": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        },
+        "solicitud_cotizacion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00001",
+      "outcome": {
+        "model_interes": {
+          "gold": "Suzuki Gixxer 150",
+          "pred": "Suzuki Gixxer 150",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "informativa",
+          "pred": "informativa",
+          "class": "tp"
+        },
+        "forma_pago": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "objecion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00002",
+      "outcome": {
+        "model_interes": {
+          "gold": "AKT TTR 200",
+          "pred": "AKT TTR 200",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "baja",
+          "pred": "media",
+          "class": "wrong"
+        },
+        "forma_pago": {
+          "gold": "financiacion",
+          "pred": "financiacion",
+          "class": "tp"
+        },
+        "objecion": {
+          "gold": "precio",
+          "pred": null,
+          "class": "fn"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00011",
+      "outcome": {
+        "model_interes": {
+          "gold": "Suzuki Best 125",
+          "pred": "Suzuki Best 125",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": null,
+          "pred": "media",
+          "class": "fp"
+        },
+        "forma_pago": {
+          "gold": "financiacion",
+          "pred": "financiacion",
+          "class": "tp"
+        },
+        "objecion": {
+          "gold": "otra",
+          "pred": "financiacion",
+          "class": "wrong"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00003",
+      "outcome": {
+        "model_interes": {
+          "gold": "Hero Eco Deluxe 100",
+          "pred": "Hero Eco Deluxe 100",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "alta",
+          "pred": "alta",
+          "class": "tp"
+        },
+        "forma_pago": {
+          "gold": "financiacion",
+          "pred": "financiacion",
+          "class": "tp"
+        },
+        "objecion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": 1500000.0,
+          "pred": 1500000.0,
+          "class": "tp"
+        },
+        "solicitud_cita": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        },
+        "solicitud_cotizacion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00004",
+      "outcome": {
+        "model_interes": {
+          "gold": "Bajaj Dominar 400",
+          "pred": "Bajaj Dominar 400",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "baja",
+          "pred": "media",
+          "class": "wrong"
+        },
+        "forma_pago": {
+          "gold": "financiacion",
+          "pred": "financiacion",
+          "class": "tp"
+        },
+        "objecion": {
+          "gold": null,
+          "pred": "financiacion",
+          "class": "fp"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": 0.0,
+          "pred": 0.0,
+          "class": "tp"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00006",
+      "outcome": {
+        "model_interes": {
+          "gold": "AKT TTR 200",
+          "pred": "AKT TTR 200",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": null,
+          "pred": "media",
+          "class": "fp"
+        },
+        "forma_pago": {
+          "gold": "financiacion",
+          "pred": "credito",
+          "class": "wrong"
+        },
+        "objecion": {
+          "gold": "precio",
+          "pred": "financiacion",
+          "class": "wrong"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": true,
+          "pred": true,
+          "class": "tp"
+        }
+      }
+    },
+    {
+      "conversation_id": "CONV-00008",
+      "outcome": {
+        "model_interes": {
+          "gold": "Bajaj Pulsar NS 125",
+          "pred": "Bajaj Pulsar NS 125",
+          "class": "tp"
+        },
+        "intencion_compra": {
+          "gold": "media",
+          "pred": "baja",
+          "class": "wrong"
+        },
+        "forma_pago": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "objecion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "presupuesto": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "cuota_inicial": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cita": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        },
+        "solicitud_cotizacion": {
+          "gold": null,
+          "pred": null,
+          "class": "tn"
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "conversation_id": "CONV-00058",
+      "categories": [
+        "cambio_modelo",
+        "cita",
+        "conv58_obligatoria",
+        "cuota_inicial_explicita",
+        "intencion_alta",
+        "objecion_explicita"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1778,
+      "error": null,
+      "raw": {
+        "model_interes": "AKT NKD 125",
+        "model_interes_evidence": "tipo la AKT NKD 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 1000000,
+        "cuota_inicial_evidence": "Tengo como 1 millonzitos de inicial",
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "alta",
+        "intencion_compra_evidence": "Esa sí me sirve",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": true,
+        "solicitud_cita_evidence": "¿Mañana los visito?",
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "AKT NKD 125",
+        "model_interes_evidence": "tipo la AKT NKD 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 1000000.0,
+        "cuota_inicial_evidence": "Tengo como 1 millonzitos de inicial",
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "alta",
+        "intencion_compra_evidence": "Esa sí me sirve",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": true,
+        "solicitud_cita_evidence": "¿Mañana los visito?",
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00001",
+      "categories": [
+        "conversacion_corta",
+        "intencion_baja_media_informativa"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1439,
+      "error": null,
+      "raw": {
+        "model_interes": "Suzuki Gixxer 150",
+        "model_interes_evidence": "Buenas, quiero información de la Suzuki Gixxer 150",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "informativa",
+        "intencion_compra_evidence": "Buenas, quiero información de la Suzuki Gixxer 150",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "Suzuki Gixxer 150",
+        "model_interes_evidence": "Buenas, quiero información de la Suzuki Gixxer 150",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "informativa",
+        "intencion_compra_evidence": "Buenas, quiero información de la Suzuki Gixxer 150",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00002",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "intencion_baja_media_informativa",
+        "objecion_explicita"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1480,
+      "error": null,
+      "raw": {
+        "model_interes": "AKT TTR 200",
+        "model_interes_evidence": "Buen día, vi el anuncio de la AKT TTR 200",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "AKT TTR 200",
+        "model_interes_evidence": "Buen día, vi el anuncio de la AKT TTR 200",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00011",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "objecion_explicita",
+        "objecion_no_precio"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1776,
+      "error": null,
+      "raw": {
+        "model_interes": "Suzuki Best 125",
+        "model_interes_evidence": "vi el anuncio de la Suzuki Best 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "objecion": "financiacion",
+        "objecion_evidence": "Tengo un reporte viejo en centrales, ¿eso afecta?",
+        "solicitud_cita": false,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "schema_valid": true,
+      "validation_errors": {
+        "solicitud_cita": "missing_evidence"
+      },
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "Suzuki Best 125",
+        "model_interes_evidence": "vi el anuncio de la Suzuki Best 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "Financiada, pero primero quiero saber cuánto queda la cuota",
+        "objecion": "financiacion",
+        "objecion_evidence": "Tengo un reporte viejo en centrales, ¿eso afecta?",
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "invalidated": {
+        "solicitud_cita": "missing_evidence"
+      }
+    },
+    {
+      "conversation_id": "CONV-00003",
+      "categories": [
+        "cita",
+        "conversacion_larga",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_alta"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1508,
+      "error": null,
+      "raw": {
+        "model_interes": "Hero Eco Deluxe 100",
+        "model_interes_evidence": "Buenas, vi el anuncio de la Hero Eco Deluxe 100",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 1500000,
+        "cuota_inicial_evidence": "Financiada, tengo $1.500.000 para la inicial",
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, tengo $1.500.000 para la inicial",
+        "intencion_compra": "alta",
+        "intencion_compra_evidence": "Hágale pues, ya voy en camino",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": true,
+        "solicitud_cita_evidence": "¿A qué hora los puedo visitar hoy?",
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "Hero Eco Deluxe 100",
+        "model_interes_evidence": "Buenas, vi el anuncio de la Hero Eco Deluxe 100",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 1500000.0,
+        "cuota_inicial_evidence": "Financiada, tengo $1.500.000 para la inicial",
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada, tengo $1.500.000 para la inicial",
+        "intencion_compra": "alta",
+        "intencion_compra_evidence": "Hágale pues, ya voy en camino",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": true,
+        "solicitud_cita_evidence": "¿A qué hora los puedo visitar hoy?",
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00004",
+      "categories": [
+        "cotizacion",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_baja_media_informativa"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 2313,
+      "error": null,
+      "raw": {
+        "model_interes": "Bajaj Dominar 400",
+        "model_interes_evidence": "me interesa la Bajaj Dominar 400",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 0,
+        "cuota_inicial_evidence": "Tengo como 0 millones",
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "me interesa la Bajaj Dominar 400",
+        "objecion": "financiacion",
+        "objecion_evidence": "No tengo con qué dar la inicial ahora",
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "Bajaj Dominar 400",
+        "model_interes_evidence": "me interesa la Bajaj Dominar 400",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": 0.0,
+        "cuota_inicial_evidence": "Tengo como 0 millones",
+        "forma_pago": "financiacion",
+        "forma_pago_evidence": "Financiada",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "me interesa la Bajaj Dominar 400",
+        "objecion": "financiacion",
+        "objecion_evidence": "No tengo con qué dar la inicial ahora",
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Listo, envíemela"
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00005",
+      "categories": [
+        "conversacion_corta",
+        "intencion_baja_media_informativa"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "rate_limited",
+      "http_status": 429,
+      "rate_limit_headers": {
+        "retry-after": "7",
+        "x-ratelimit-limit-requests": "1000",
+        "x-ratelimit-remaining-requests": "991",
+        "x-ratelimit-reset-requests": "12m57.599s"
+      },
+      "success": false,
+      "latency_ms": null,
+      "error": "HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01m2khr07vezjbcgd0zqtv1n5j` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6433, Requested 2441. Please try again in 6.555s. Need more tokens? Upgrade to Dev Tier today at https://conso",
+      "raw": null,
+      "schema_valid": null,
+      "validation_errors": null,
+      "validated": null,
+      "invalidated": null
+    },
+    {
+      "conversation_id": "CONV-00006",
+      "categories": [
+        "cotizacion",
+        "forma_pago_explicita",
+        "objecion_explicita"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1369,
+      "error": null,
+      "raw": {
+        "model_interes": "AKT TTR 200",
+        "model_interes_evidence": "vi el anuncio de la AKT TTR 200",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "credito",
+        "forma_pago_evidence": "A crédito",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "A crédito, ¿cómo es el proceso?",
+        "objecion": "financiacion",
+        "objecion_evidence": "porque el interés está caro",
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Bueno, mándela y yo le digo"
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "AKT TTR 200",
+        "model_interes_evidence": "vi el anuncio de la AKT TTR 200",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": "credito",
+        "forma_pago_evidence": "A crédito",
+        "intencion_compra": "media",
+        "intencion_compra_evidence": "A crédito, ¿cómo es el proceso?",
+        "objecion": "financiacion",
+        "objecion_evidence": "porque el interés está caro",
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": true,
+        "solicitud_cotizacion_evidence": "Bueno, mándela y yo le digo"
+      },
+      "invalidated": {}
+    },
+    {
+      "conversation_id": "CONV-00007",
+      "categories": [
+        "cita",
+        "conversacion_larga",
+        "cuota_inicial_explicita",
+        "forma_pago_explicita",
+        "intencion_alta"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "rate_limited",
+      "http_status": 429,
+      "rate_limit_headers": {
+        "retry-after": "4",
+        "x-ratelimit-limit-requests": "1000",
+        "x-ratelimit-remaining-requests": "990",
+        "x-ratelimit-reset-requests": "14m24s"
+      },
+      "success": false,
+      "latency_ms": null,
+      "error": "HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01m2khr07vezjbcgd0zqtv1n5j` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6429, Requested 2004. Please try again in 3.2475s. Need more tokens? Upgrade to Dev Tier today at https://cons",
+      "raw": null,
+      "schema_valid": null,
+      "validation_errors": null,
+      "validated": null,
+      "invalidated": null
+    },
+    {
+      "conversation_id": "CONV-00008",
+      "categories": [
+        "intencion_baja_media_informativa"
+      ],
+      "model": "openai/gpt-oss-20b",
+      "attempts": 1,
+      "status": "ok",
+      "http_status": null,
+      "rate_limit_headers": {},
+      "success": true,
+      "latency_ms": 1600,
+      "error": null,
+      "raw": {
+        "model_interes": "Bajaj Pulsar NS 125",
+        "model_interes_evidence": "estoy averiguando por la Bajaj Pulsar NS 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "baja",
+        "intencion_compra_evidence": "Solo estaba mirando precios",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "schema_valid": true,
+      "validation_errors": {},
+      "validated": {
+        "schema_version": "v1",
+        "model_interes": "Bajaj Pulsar NS 125",
+        "model_interes_evidence": "estoy averiguando por la Bajaj Pulsar NS 125",
+        "presupuesto": null,
+        "presupuesto_evidence": null,
+        "cuota_inicial": null,
+        "cuota_inicial_evidence": null,
+        "forma_pago": null,
+        "forma_pago_evidence": null,
+        "intencion_compra": "baja",
+        "intencion_compra_evidence": "Solo estaba mirando precios",
+        "objecion": null,
+        "objecion_evidence": null,
+        "solicitud_cita": null,
+        "solicitud_cita_evidence": null,
+        "solicitud_cotizacion": null,
+        "solicitud_cotizacion_evidence": null
+      },
+      "invalidated": {}
+    }
+  ]
+}

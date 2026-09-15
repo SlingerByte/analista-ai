@@ -40,7 +40,7 @@
         <h2>Datos del lead</h2>
         <dl>
           <dt>Modelo de interés</dt><dd>{{ model }}</dd>
-          <dt>Ciudad</dt><dd>{{ lead.city_raw or lead.city_normalized or 'Desconocido' }}</dd>
+          <dt>Ciudad</dt><dd>{{ city }}</dd>
           <dt>Estado de gestión</dt><dd>{{ lead.status or 'Desconocido' }}</dd>
           <dt>Punto de venta</dt><dd>{{ lead.point_of_sale_id }}</dd>
           <dt>Empresa</dt><dd>{{ lead.company_id }}</dd>

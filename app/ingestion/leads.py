@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from app.canonical import resolve_city
 from app.ingestion import loaders
 from app.ingestion.catalog import build_catalog_index, match_model
 from app.ingestion.normalizers import (
@@ -13,7 +14,6 @@ from app.ingestion.normalizers import (
     date_reason,
     is_valid_email,
     normalize_canal,
-    normalize_city,
     normalize_email,
     normalize_estado,
     normalize_phone,
@@ -21,9 +21,10 @@ from app.ingestion.normalizers import (
 )
 from app.integrity import OrgIntegrityError, check_lead_organization
 from app.models import CatalogItem, Lead, PointOfSale
+from app.text import clean_display
 
 
-def _build_meta(row, reg_info, cont_info, phone_raw, phone_norm, phone_valid, email_raw, email_valid, city_raw, city_label, city_key, city_matched, canal_raw, canal_value, estado_raw, estado_value, model_match, anomalies):
+def _build_meta(row, reg_info, cont_info, phone_raw, phone_norm, phone_valid, email_raw, email_valid, city_raw, city_label, city_key, city_status, city_matched, canal_raw, canal_value, estado_raw, estado_value, model_match, anomalies):
     return {
         "phone": {
             "raw": phone_raw,
@@ -42,6 +43,8 @@ def _build_meta(row, reg_info, cont_info, phone_raw, phone_norm, phone_valid, em
             "raw": city_raw,
             "normalized": city_label,
             "key": city_key,
+            "canonical": city_label,
+            "status": city_status,
             "method": "city_canonical",
             "matched": city_matched,
         },
@@ -147,7 +150,11 @@ def ingest_leads(session: Session, run_id: int, data_dir: Path) -> dict:
         email_valid = is_valid_email(email_raw)
 
         city_raw = (row.get("ciudad") or "").strip() or None
-        city_label, city_key, city_matched = normalize_city(city_raw)
+        city_result = resolve_city(city_raw)
+        city_label = city_result.canonical
+        city_key = city_result.key
+        city_status = city_result.status
+        city_matched = city_result.resolved
         if city_raw:
             if city_matched:
                 cities_normalized += 1
@@ -231,6 +238,7 @@ def ingest_leads(session: Session, run_id: int, data_dir: Path) -> dict:
             city_raw,
             city_label,
             city_key,
+            city_status,
             city_matched,
             canal_raw,
             canal_value,
@@ -256,7 +264,7 @@ def ingest_leads(session: Session, run_id: int, data_dir: Path) -> dict:
             "point_of_sale_id": point_of_sale_id,
             "channel": canal_value,
             "status": estado_value,
-            "customer_name": (row.get("nombre_cliente") or "").strip() or None,
+            "customer_name": clean_display(row.get("nombre_cliente")),
             "phone_raw": phone_raw or None,
             "phone_normalized": phone_norm if phone_valid else None,
             "email_raw": email_raw,

@@ -2,20 +2,11 @@ from __future__ import annotations
 
 import datetime as _dt
 import re
-import unicodedata
 from typing import Any
 
-
-def strip_accents(value: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", value)
-    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-
-
-def normalize_key(value: str | None) -> str:
-    if value is None:
-        return ""
-    text = strip_accents(str(value).strip().lower())
-    return re.sub(r"\s+", " ", text)
+# Re-exportadas desde `app.text` para conservar la API histórica del módulo.
+from app.canonical import STATUS_EMPTY, resolve_city
+from app.text import normalize_key, strip_accents  # noqa: F401
 
 
 def pick(mapping: dict[str, Any], keys: list[str], default: Any = None) -> Any:
@@ -64,39 +55,16 @@ def normalize_estado(value: str | None) -> str | None:
     return ESTADO_CANONICAL.get(key, str(value).strip())
 
 
-CITY_CANONICAL = {
-    "bogota": "Bogotá",
-    "medellin": "Medellín",
-    "bello": "Bello",
-    "monteria": "Montería",
-    "soacha": "Soacha",
-    "soledad": "Soledad",
-    "cartagena": "Cartagena",
-    "barranquilla": "Barranquilla",
-    "santa marta": "Santa Marta",
-    "itagui": "Itagüí",
-    "rionegro": "Rionegro",
-}
-
-CITY_ALIASES = {
-    "bogota d.c.": "bogota",
-    "bogota dc": "bogota",
-    "cartagena de indias": "cartagena",
-    "sta marta": "santa marta",
-    "rio negro": "rionegro",
-    "b/quilla": "barranquilla",
-}
-
-
 def normalize_city(value: str | None) -> tuple[str | None, str, bool]:
-    key = normalize_key(value)
-    if not key:
+    """Devuelve ``(canonical | None, key, matched)``.
+
+    El catálogo y los alias viven en :mod:`app.canonical`. Un valor no conocido
+    conserva su clave y devuelve ``canonical=None`` (no se inventa).
+    """
+    result = resolve_city(value)
+    if result.status == STATUS_EMPTY:
         return None, "", False
-    resolved = CITY_ALIASES.get(key, key)
-    label = CITY_CANONICAL.get(resolved)
-    if label is None:
-        return None, resolved, False
-    return label, resolved, True
+    return result.canonical, result.key, result.resolved
 
 
 PHONE_SPLIT_RE = re.compile(r"[^\d]")

@@ -76,6 +76,11 @@ def _model_label(lead: Lead, catalog: CatalogItem | None) -> str:
     return (lead.model_text_raw or "").strip() or UNKNOWN
 
 
+def _city_label(lead: Lead) -> str:
+    """Ciudad canónica cuando hay resolución confiable; si no, el original."""
+    return lead.city_normalized or lead.city_raw or UNKNOWN
+
+
 def _bool_label(value: bool | None) -> str:
     if value is True:
         return "Sí"
@@ -96,6 +101,7 @@ def _row_for_assignment(session: Session, assignment: Assignment,
         "lead": lead,
         "score": score,
         "model": _model_label(lead, catalog),
+        "city": _city_label(lead),
         "band": (score.band if score and score.band else UNKNOWN),
         "queue": (float(score.queue_score)
                   if score and score.queue_score is not None else None),
@@ -453,6 +459,7 @@ def lead_detail(
             "lead": lead,
             "score": score,
             "model": _model_label(lead, catalog),
+            "city": _city_label(lead),
             "reasons": _priority_reasons(score.reasons if score else None),
             "conversations": conv_rows,
             "unknown": UNKNOWN,

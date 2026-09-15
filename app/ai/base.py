@@ -94,6 +94,10 @@ class BaseHTTPExtractor:
     def __init__(self, model: str | None, timeout: float) -> None:
         self.model = model
         self.timeout = timeout
+        # Headers de la última respuesta HTTP (claves en minúsculas). Solo
+        # metadatos de transporte (p. ej. `retry-after`); jamás credenciales.
+        # Aditivo: no altera el comportamiento de los extractores existentes.
+        self.last_response_headers: dict[str, str] = {}
 
     def availability(self) -> tuple[bool, str]:  # pragma: no cover - overridden
         raise NotImplementedError
@@ -118,7 +122,19 @@ class BaseHTTPExtractor:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 body = response.read().decode("utf-8")
+                try:
+                    self.last_response_headers = {
+                        str(k).lower(): str(v) for k, v in response.headers.items()
+                    }
+                except Exception:  # noqa: BLE001 - headers son opcionales
+                    self.last_response_headers = {}
         except urllib.error.HTTPError as exc:
+            try:
+                self.last_response_headers = {
+                    str(k).lower(): str(v) for k, v in exc.headers.items()
+                }
+            except Exception:  # noqa: BLE001 - headers son opcionales
+                self.last_response_headers = {}
             detail = ""
             try:
                 detail = exc.read().decode("utf-8")[:300]

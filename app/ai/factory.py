@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from app.ai.base import AIExtractor
+from app.ai.groq import GroqExtractor
 from app.ai.ollama import OllamaExtractor
 from app.ai.openrouter import OpenRouterExtractor
 from app.config import Settings, get_settings, is_production
 
 # Proveedores admitidos por la factory. Producción solo acepta proveedores
 # remotos: un Ollama local no es una configuración válida de despliegue.
-KNOWN_PROVIDERS = frozenset({"ollama", "openrouter"})
-PRODUCTION_PROVIDERS = frozenset({"openrouter"})
+KNOWN_PROVIDERS = frozenset({"ollama", "openrouter", "groq"})
+PRODUCTION_PROVIDERS = frozenset({"openrouter", "groq"})
 
 
 class UnknownProviderError(ValueError):
@@ -45,12 +46,12 @@ def validate_ai_configuration(settings: Settings) -> None:
     if not provider:
         raise AIProviderConfigError(
             "APP_ENV=production requiere AI_PROVIDER configurado con un "
-            "proveedor remoto (p. ej. openrouter)."
+            "proveedor remoto (p. ej. openrouter o groq)."
         )
     if provider not in PRODUCTION_PROVIDERS:
         raise AIProviderConfigError(
             f"AI_PROVIDER={provider!r} no está permitido en producción; "
-            "configure un proveedor remoto (openrouter) y sus credenciales."
+            "configure un proveedor remoto (openrouter o groq) y sus credenciales."
         )
     if provider == "openrouter":
         if not settings.openrouter_api_key:
@@ -62,6 +63,17 @@ def validate_ai_configuration(settings: Settings) -> None:
             raise AIProviderConfigError(
                 "OPENROUTER_MODEL es obligatorio cuando "
                 "AI_PROVIDER=openrouter en producción."
+            )
+    if provider == "groq":
+        if not settings.groq_api_key:
+            raise AIProviderConfigError(
+                "GROQ_API_KEY es obligatoria cuando "
+                "AI_PROVIDER=groq en producción."
+            )
+        if not settings.groq_model:
+            raise AIProviderConfigError(
+                "GROQ_MODEL es obligatorio cuando "
+                "AI_PROVIDER=groq en producción."
             )
 
 
@@ -82,6 +94,13 @@ def build_extractor(
             api_key=settings.openrouter_api_key,
             model=settings.openrouter_model,
             base_url=settings.openrouter_base_url,
+            timeout=settings.ai_timeout_seconds,
+        )
+    if resolved == "groq":
+        return GroqExtractor(
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+            base_url=settings.groq_base_url,
             timeout=settings.ai_timeout_seconds,
         )
     raise UnknownProviderError(f"unknown AI_PROVIDER: {resolved!r}")

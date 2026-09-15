@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str | None = None
     openrouter_model: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    groq_api_key: str | None = None
+    groq_model: str | None = "openai/gpt-oss-20b"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
 
 
 @lru_cache

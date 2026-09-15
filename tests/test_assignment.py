@@ -12,6 +12,7 @@ from app.assignment.service import (
     AdvisorCapacity,
     LeadCandidate,
     plan_assignments,
+    retry_assignment,
     run_assignment,
 )
 from app.db import Base
@@ -345,3 +346,129 @@ def test_cobertura_15_pos_con_seed_real(tmp_path):
         assert "AS-037" not in report["per_advisor"]
         assert "AS-040" not in report["per_advisor"]
     engine.dispose()
+
+
+# --- Overflow / reintento (Phase 2) ----------------------------------------
+
+
+def test_retry_fills_overflow_when_capacity_appears(factory):
+    day = date(2026, 9, 14)
+    with factory() as session:
+        _add_lead(session, "LD-01")
+        _add_lead(session, "LD-02")
+        _add_score(session, "LD-01", queue=90.0)
+        _add_score(session, "LD-02", queue=80.0)
+        _add_advisor(session, "AS-01", capacity=1)
+        session.commit()
+
+        first = run_assignment(session, day)
+        assert first["assigned"] == 1
+        assert first["overflow"] == 1
+
+        # Aparece capacidad (p. ej. se reactiva/amplía un asesor).
+        session.get(Advisor, "AS-01").daily_capacity = 2
+        session.commit()
+
+        retry = retry_assignment(session, day)
+        assert retry["reused"] is False
+        assert retry["assigned"] == 2
+        assert retry["overflow"] == 0
+
+        current = session.scalars(
+            sa.select(Assignment).where(Assignment.is_current.is_(True))
+        ).all()
+        assert {row.lead_id for row in current} == {"LD-01", "LD-02"}
+        assert all(row.status == "assigned" for row in current)
+
+        total_rows = session.scalar(sa.select(sa.func.count()).select_from(Assignment))
+        second = retry_assignment(session, day)
+        assert second["reused"] is True
+        assert (
+            session.scalar(sa.select(sa.func.count()).select_from(Assignment))
+            == total_rows
+        )
+
+
+def test_retry_is_idempotent_without_changes(factory):
+    day = date(2026, 9, 14)
+    with factory() as session:
+        _add_lead(session, "LD-01")
+        _add_score(session, "LD-01", queue=50.0)
+        _add_advisor(session, "AS-01", capacity=5)
+        session.commit()
+
+        run_assignment(session, day)
+        total_rows = session.scalar(sa.select(sa.func.count()).select_from(Assignment))
+        retry = retry_assignment(session, day)
+        assert retry["reused"] is True
+        assert (
+            session.scalar(sa.select(sa.func.count()).select_from(Assignment))
+            == total_rows
+        )
+        assert (
+            session.scalar(
+                sa.select(sa.func.count())
+                .select_from(Assignment)
+                .where(Assignment.is_current.is_(True))
+            )
+            == 1
+        )
+
+
+def test_retry_keeps_overflow_when_capacity_is_in_another_pos(factory):
+    day = date(2026, 9, 14)
+    with factory() as session:
+        session.add(PointOfSale(point_of_sale_id="PV-002", company_id="EMP-01", name="PV 2"))
+        session.add(
+            Advisor(advisor_id="AS-02", company_id="EMP-01", point_of_sale_id="PV-002",
+                    name="Dos", daily_capacity=5, active=True)
+        )
+        _add_lead(session, "LD-01")  # PV-001
+        _add_score(session, "LD-01", queue=50.0)
+        _add_advisor(session, "AS-01", capacity=0)  # PV-001 sin capacidad
+        session.commit()
+
+        retry = retry_assignment(session, day)
+        assert retry["assigned"] == 0
+        assert retry["overflow"] == 1
+        row = session.scalar(
+            sa.select(Assignment).where(Assignment.is_current.is_(True))
+        )
+        assert row.status == "overflow"
+        assert row.advisor_id is None
+        assert row.reason == "sin_capacidad"
+
+
+def test_retry_scoped_by_company_leaves_others_untouched(factory):
+    day = date(2026, 9, 14)
+    with factory() as session:
+        session.add(Company(company_id="EMP-02", name="Empresa 2"))
+        session.add(PointOfSale(point_of_sale_id="PV-006", company_id="EMP-02", name="PV 6"))
+        session.add(
+            Advisor(advisor_id="AS-09", company_id="EMP-02", point_of_sale_id="PV-006",
+                    name="Nueve", daily_capacity=5, active=True)
+        )
+        _add_lead(session, "LD-01")  # EMP-01 / PV-001
+        _add_lead(session, "LD-90", company="EMP-02", pos="PV-006")
+        _add_score(session, "LD-01", queue=50.0)
+        _add_score(session, "LD-90", queue=50.0)
+        _add_advisor(session, "AS-01", capacity=0)  # EMP-01 queda en overflow
+        session.commit()
+
+        run_assignment(session, day)
+        emp02_before = session.scalars(
+            sa.select(Assignment).where(
+                Assignment.company_id == "EMP-02", Assignment.is_current.is_(True)
+            )
+        ).all()
+        assert len(emp02_before) == 1
+        ids_before = [row.assignment_id for row in emp02_before]
+
+        retry_assignment(session, day, company_ids={"EMP-01"})
+
+        emp02_after = session.scalars(
+            sa.select(Assignment).where(
+                Assignment.company_id == "EMP-02", Assignment.is_current.is_(True)
+            )
+        ).all()
+        assert [row.assignment_id for row in emp02_after] == ids_before

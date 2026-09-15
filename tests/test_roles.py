@@ -81,6 +81,12 @@ def client(tmp_path):
             Lead(lead_id="L9", company_id="EMP-02", point_of_sale_id="PV-006",
                  customer_name="OtraEmpresa", status="Contactado",
                  raw_payload={}, record_hash="d"),
+            Lead(lead_id="L4", company_id="EMP-01", point_of_sale_id="PV-001",
+                 customer_name="PendienteEmp01", status="Contactado",
+                 raw_payload={}, record_hash="e"),
+            Lead(lead_id="L10", company_id="EMP-02", point_of_sale_id="PV-006",
+                 customer_name="PendienteEmp02", status="Contactado",
+                 raw_payload={}, record_hash="f"),
         ])
         session.add_all([
             LeadScore(lead_id="L1", score_version="v1", priority_score=80.0,
@@ -91,6 +97,10 @@ def client(tmp_path):
                       urgency_score=10.0, queue_score=60.0, band="Media", is_current=True),
             LeadScore(lead_id="L9", score_version="v1", priority_score=70.0,
                       urgency_score=10.0, queue_score=70.0, band="Alta", is_current=True),
+            LeadScore(lead_id="L4", score_version="v1", priority_score=75.0,
+                      urgency_score=10.0, queue_score=75.0, band="Alta", is_current=True),
+            LeadScore(lead_id="L10", score_version="v1", priority_score=65.0,
+                      urgency_score=10.0, queue_score=65.0, band="Media", is_current=True),
         ])
         session.add_all([
             Assignment(lead_id="L1", advisor_id="AS-001", company_id="EMP-01",
@@ -105,6 +115,14 @@ def client(tmp_path):
             Assignment(lead_id="L9", advisor_id="AS-009", company_id="EMP-02",
                        point_of_sale_id="PV-006", run_date=DAY, strategy_version="v1",
                        priority_rank=1, status="assigned", reason="r", is_current=True),
+            Assignment(lead_id="L4", advisor_id=None, company_id="EMP-01",
+                       point_of_sale_id="PV-001", run_date=DAY, strategy_version="v1",
+                       priority_rank=2, status="overflow", reason="sin_capacidad",
+                       is_current=True),
+            Assignment(lead_id="L10", advisor_id=None, company_id="EMP-02",
+                       point_of_sale_id="PV-006", run_date=DAY, strategy_version="v1",
+                       priority_rank=2, status="overflow", reason="sin_capacidad",
+                       is_current=True),
         ])
         session.commit()
 
@@ -322,3 +340,46 @@ def test_admin_ve_supervisores_varias_empresas(client):
     _login(client, "admin@x")
     text = _text(client, "/supervision")
     assert "sup1@x" in text and "sup2@x" in text
+
+
+# ---- Overflow / reintento de asignación ----
+
+def test_supervisor_solo_ve_overflow_de_su_empresa(client):
+    _login(client, "sup1@x")
+    text = _text(client, "/supervision")
+    assert "Pendientes de asignación" in text
+    assert "PendienteEmp01" in text
+    assert "PendienteEmp02" not in text
+
+
+def test_admin_ve_overflow_global(client):
+    _login(client, "admin@x")
+    text = _text(client, "/supervision")
+    assert "PendienteEmp01" in text
+    assert "PendienteEmp02" in text
+
+
+def test_advisor_no_accede_a_supervision_ni_retry(client):
+    _login(client, "adv@x")
+    _text(client, "/supervision", status=403)
+    response = client.post("/supervision/retry-assignment")
+    assert response.status_code == 403
+
+
+def test_supervisor_retry_asigna_pendientes(client):
+    _login(client, "sup1@x")
+    response = client.post("/supervision/retry-assignment")
+    assert response.status_code == 200
+    text = response.text
+    assert "Reintento ejecutado" in text
+    assert "Pendientes de asignación (0)" in text
+    # el pendiente de EMP-01 ya no aparece como tal y sigue visible como asignado
+    assert "PendienteEmp01" in text
+
+
+def test_retry_ui_es_idempotente(client):
+    _login(client, "sup1@x")
+    client.post("/supervision/retry-assignment")
+    second = client.post("/supervision/retry-assignment")
+    assert second.status_code == 200
+    assert "sin cambios" in second.text

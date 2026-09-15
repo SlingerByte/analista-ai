@@ -19,7 +19,8 @@ from app.ingestion.normalizers import (
     normalize_phone,
     normalized_date_value,
 )
-from app.models import CatalogItem, Company, Lead, PointOfSale
+from app.integrity import OrgIntegrityError, check_lead_organization
+from app.models import CatalogItem, Lead, PointOfSale
 
 
 def _build_meta(row, reg_info, cont_info, phone_raw, phone_norm, phone_valid, email_raw, email_valid, city_raw, city_label, city_key, city_matched, canal_raw, canal_value, estado_raw, estado_value, model_match, anomalies):
@@ -83,7 +84,6 @@ def ingest_leads(session: Session, run_id: int, data_dir: Path) -> dict:
     ).all()
     catalog_index = build_catalog_index(catalog_rows)
 
-    company_ids = set(session.scalars(sa.select(Company.company_id)).all())
     pv_company = dict(
         session.execute(
             sa.select(PointOfSale.point_of_sale_id, PointOfSale.company_id)
@@ -121,11 +121,11 @@ def ingest_leads(session: Session, run_id: int, data_dir: Path) -> dict:
 
         company_id = (row.get("empresa_id") or "").strip()
         point_of_sale_id = (row.get("punto_venta_id") or "").strip()
-        if (
-            company_id not in company_ids
-            or point_of_sale_id not in pv_company
-            or pv_company[point_of_sale_id] != company_id
-        ):
+        try:
+            check_lead_organization(
+                pv_company, company_id=company_id, point_of_sale_id=point_of_sale_id
+            )
+        except OrgIntegrityError:
             invalid_references += 1
             anomalies.append(
                 {

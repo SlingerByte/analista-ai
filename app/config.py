@@ -2,6 +2,20 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+PRODUCTION_ENVS = frozenset({"production", "prod"})
+
+# Valores que no son aceptables como SECRET_KEY real de producción.
+INSECURE_SECRET_KEYS = frozenset(
+    {
+        "",
+        "dev-insecure-change-me",
+        "change-me-in-production",
+        "changeme",
+        "secret",
+        "test-secret",
+    }
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -38,3 +52,17 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def is_production(settings: Settings) -> bool:
+    return (settings.app_env or "").strip().lower() in PRODUCTION_ENVS
+
+
+def validate_startup_configuration(settings: Settings) -> None:
+    """Fallar al arrancar si falta configuración obligatoria de producción."""
+    if is_production(settings) and (settings.secret_key or "").strip() in INSECURE_SECRET_KEYS:
+        raise RuntimeError(
+            "SECRET_KEY insegura para producción: configure un valor aleatorio y "
+            "secreto (p. ej. `uv run python -c \"from app.auth import fresh_secret; "
+            "print(fresh_secret())\"`)."
+        )

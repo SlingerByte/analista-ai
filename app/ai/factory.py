@@ -3,13 +3,12 @@ from __future__ import annotations
 from app.ai.base import AIExtractor
 from app.ai.ollama import OllamaExtractor
 from app.ai.openrouter import OpenRouterExtractor
-from app.config import Settings, get_settings
+from app.config import Settings, get_settings, is_production
 
 # Proveedores admitidos por la factory. Producción solo acepta proveedores
 # remotos: un Ollama local no es una configuración válida de despliegue.
 KNOWN_PROVIDERS = frozenset({"ollama", "openrouter"})
 PRODUCTION_PROVIDERS = frozenset({"openrouter"})
-PRODUCTION_ENVS = frozenset({"production", "prod"})
 
 
 class UnknownProviderError(ValueError):
@@ -22,10 +21,6 @@ class AIProviderConfigError(RuntimeError):
 
 def resolve_provider(settings: Settings) -> str:
     return (settings.ai_provider or "").strip().lower()
-
-
-def is_production(settings: Settings) -> bool:
-    return (settings.app_env or "").strip().lower() in PRODUCTION_ENVS
 
 
 def validate_ai_configuration(settings: Settings) -> None:

@@ -18,6 +18,19 @@ if TYPE_CHECKING:
 
 class Assignment(Base):
     __tablename__ = "assignments"
+    __table_args__ = (
+        # Defensa de BD: la asignación respeta empresa ↔ POS ↔ asesor.
+        sa.ForeignKeyConstraint(
+            ["company_id", "point_of_sale_id"],
+            ["points_of_sale.company_id", "points_of_sale.point_of_sale_id"],
+            name="fk_assignments_company_pos",
+        ),
+        sa.ForeignKeyConstraint(
+            ["advisor_id", "company_id", "point_of_sale_id"],
+            ["advisors.advisor_id", "advisors.company_id", "advisors.point_of_sale_id"],
+            name="fk_assignments_advisor_org",
+        ),
+    )
 
     assignment_id: Mapped[int] = mapped_column(
         BigIntType, primary_key=True, autoincrement=True
@@ -50,7 +63,11 @@ class Assignment(Base):
     )
 
     lead: Mapped["Lead"] = relationship(back_populates="assignments")
-    advisor: Mapped["Advisor | None"] = relationship(back_populates="assignments")
+    advisor: Mapped["Advisor | None"] = relationship(
+        back_populates="assignments", foreign_keys=[advisor_id]
+    )
     company: Mapped["Company"] = relationship()
-    point_of_sale: Mapped["PointOfSale | None"] = relationship()
+    point_of_sale: Mapped["PointOfSale | None"] = relationship(
+        foreign_keys=[point_of_sale_id]
+    )
     run: Mapped["PipelineRun | None"] = relationship()

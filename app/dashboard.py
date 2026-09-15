@@ -11,12 +11,13 @@ from datetime import date
 from pathlib import Path
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.ai.service import get_current_extraction
+from app.assignment.service import STATUS_ASSIGNED, STATUS_OVERFLOW, retry_assignment
 from app.auth import ROLE_ADVISOR, ROLE_ADMIN, ROLE_SUPERVISOR, require_login
 from app.config import get_settings
 from app.db import get_session
@@ -190,6 +191,10 @@ def supervision(
     banda: str | None = Query(default=None),
     estado: str | None = Query(default=None),
     modelo: str | None = Query(default=None),
+    retry: str | None = Query(default=None),
+    retry_assigned: int | None = Query(default=None),
+    retry_overflow: int | None = Query(default=None),
+    retry_reused: int | None = Query(default=None),
 ):
     if isinstance(user, RedirectResponse):
         return user
@@ -261,6 +266,12 @@ def supervision(
     for row in rows:
         if row["band"] in counts:
             counts[row["band"]] += 1
+    assigned_total = sum(
+        1 for row in rows if row["assignment"].status == STATUS_ASSIGNED
+    )
+    overflow_rows = [
+        row for row in rows if row["assignment"].status == STATUS_OVERFLOW
+    ]
     pos_options = sorted({a.point_of_sale_id for a in assignments})
     advisor_options = sorted({a.advisor_id for a in assignments if a.advisor_id
                               and (not pos or a.point_of_sale_id == pos)})
@@ -284,6 +295,15 @@ def supervision(
             "run_date": resolved.isoformat() if resolved else None,
             "rows": rows,
             "total": len(rows),
+            "assigned_total": assigned_total,
+            "overflow_total": len(overflow_rows),
+            "overflow_rows": overflow_rows,
+            "retry": {
+                "ran": retry is not None,
+                "assigned": retry_assigned,
+                "overflow": retry_overflow,
+                "reused": bool(retry_reused),
+            },
             "counts": counts,
             "filters": {"empresa": empresa or "", "supervisor": supervisor or "",
                         "pos": pos or "", "asesor": asesor or "",
@@ -296,6 +316,57 @@ def supervision(
             "band_options": ["Alta", "Media", "Baja"],
             "status_options": status_options,
         },
+    )
+
+
+@router.post("/supervision/retry-assignment")
+def retry_assignment_action(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    empresa: str | None = Form(default=None),
+):
+    """Reintenta la asignación determinista sobre los pendientes (scoped)."""
+    if isinstance(user, RedirectResponse):
+        return user
+    if user.role not in (ROLE_SUPERVISOR, ROLE_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Solo supervisor o admin pueden reintentar la asignación",
+        )
+
+    is_admin = user.role == ROLE_ADMIN
+    if is_admin:
+        if empresa:
+            exists = session.scalar(
+                sa.select(Company.company_id).where(Company.company_id == empresa)
+            )
+            scope: set[str] | None = {empresa} if exists else set()
+        else:
+            scope = None
+    else:
+        scope = {user.company_id} if user.company_id else set()
+
+    if scope is not None and not scope:
+        # Empresa filtrada inexistente: nada que reintentar.
+        return RedirectResponse(url="/supervision", status_code=303)
+
+    resolved = session.scalar(
+        sa.select(sa.func.max(Assignment.run_date)).where(
+            Assignment.is_current.is_(True),
+            Assignment.company_id.in_(scope) if scope else sa.true(),
+        )
+    ) or date.today()
+
+    report = retry_assignment(session, resolved, company_ids=scope)
+    return RedirectResponse(
+        url=(
+            "/supervision?retry=1"
+            f"&retry_assigned={report['assigned']}"
+            f"&retry_overflow={report['overflow']}"
+            f"&retry_reused={1 if report['reused'] else 0}"
+        ),
+        status_code=303,
     )
 
 

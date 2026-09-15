@@ -26,7 +26,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.config import get_settings, is_production
 from app.db import get_session
 from app.models import User
 
@@ -106,12 +106,15 @@ def require_login(request: Request, user: User | None = Depends(get_current_user
 
 
 def _set_session(response: RedirectResponse, user_id: int) -> None:
+    settings = get_settings()
     response.set_cookie(
         SESSION_COOKIE,
-        create_session_value(user_id, get_settings().secret_key),
+        create_session_value(user_id, settings.secret_key),
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
+        # HTTPS obligatorio en producción.
+        secure=is_production(settings),
         path="/",
     )
 

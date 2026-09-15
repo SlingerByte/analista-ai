@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 
 class Lead(Base):
     __tablename__ = "leads"
+    __table_args__ = (
+        # Defensa de BD: el punto de venta debe pertenecer a la misma empresa.
+        sa.ForeignKeyConstraint(
+            ["company_id", "point_of_sale_id"],
+            ["points_of_sale.company_id", "points_of_sale.point_of_sale_id"],
+            name="fk_leads_company_pos",
+        ),
+    )
 
     lead_id: Mapped[str] = mapped_column(sa.Text, primary_key=True)
     company_id: Mapped[str] = mapped_column(
@@ -79,7 +87,9 @@ class Lead(Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="leads")
-    point_of_sale: Mapped["PointOfSale"] = relationship(back_populates="leads")
+    point_of_sale: Mapped["PointOfSale"] = relationship(
+        back_populates="leads", foreign_keys=[point_of_sale_id]
+    )
     catalog_item: Mapped["CatalogItem | None"] = relationship(back_populates="leads")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="lead")
     identity_member: Mapped["IdentityMember | None"] = relationship(

@@ -1,0 +1,29 @@
+# Deployment en Render (runtime Docker + PostgreSQL gestionado externo).
+#
+# Antes de desplegar:
+#   1. Cree una base PostgreSQL (Render, Neon, Supabase, etc.) y copie su URL.
+#   2. En Render, cree el servicio desde este `render.yaml` o manualmente.
+#   3. Defina SECRET_KEY (Render puede generarla) y OPENROUTER_API_KEY.
+# El contenedor ejecuta `alembic upgrade head` antes de arrancar uvicorn.
+services:
+  - type: web
+    name: analista-ia
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1

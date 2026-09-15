@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.ai.factory import AIProviderConfigError, validate_ai_configuration
 from app.auth import router as auth_router
-from app.config import get_settings
+from app.config import get_settings, validate_startup_configuration
 from app.dashboard import router as dashboard_router
 from app.db import check_database
 
@@ -13,8 +13,12 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fallar temprano y con mensaje claro si el entorno exige una
-    # configuración de IA que no está presente (p. ej. producción sin clave).
+    # Fallar temprano y con mensaje claro si el entorno exige configuración
+    # que no está presente (producción sin SECRET_KEY o sin IA remota).
+    try:
+        validate_startup_configuration(settings)
+    except RuntimeError as exc:
+        raise RuntimeError(f"Configuración inválida: {exc}") from exc
     try:
         validate_ai_configuration(settings)
     except AIProviderConfigError as exc:

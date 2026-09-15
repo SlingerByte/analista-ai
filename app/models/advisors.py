@@ -16,6 +16,18 @@ if TYPE_CHECKING:
 
 class Advisor(Base):
     __tablename__ = "advisors"
+    __table_args__ = (
+        # Clave única para poder ser referenciada por constraints compuestos.
+        sa.UniqueConstraint(
+            "advisor_id", "company_id", "point_of_sale_id",
+            name="uq_advisors_id_company_pos",
+        ),
+        sa.ForeignKeyConstraint(
+            ["company_id", "point_of_sale_id"],
+            ["points_of_sale.company_id", "points_of_sale.point_of_sale_id"],
+            name="fk_advisors_company_pos",
+        ),
+    )
 
     advisor_id: Mapped[str] = mapped_column(sa.Text, primary_key=True)
     company_id: Mapped[str] = mapped_column(
@@ -36,6 +48,10 @@ class Advisor(Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="advisors")
-    point_of_sale: Mapped["PointOfSale"] = relationship(back_populates="advisors")
+    point_of_sale: Mapped["PointOfSale"] = relationship(
+        back_populates="advisors", foreign_keys=[point_of_sale_id]
+    )
     users: Mapped[list["User"]] = relationship(back_populates="advisor")
-    assignments: Mapped[list["Assignment"]] = relationship(back_populates="advisor")
+    assignments: Mapped[list["Assignment"]] = relationship(
+        back_populates="advisor", foreign_keys="Assignment.advisor_id"
+    )

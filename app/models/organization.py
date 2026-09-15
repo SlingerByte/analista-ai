@@ -31,6 +31,11 @@ class Company(Base):
 
 class PointOfSale(Base):
     __tablename__ = "points_of_sale"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "company_id", "point_of_sale_id", name="uq_points_of_sale_company_pos"
+        ),
+    )
 
     point_of_sale_id: Mapped[str] = mapped_column(sa.Text, primary_key=True)
     company_id: Mapped[str] = mapped_column(
@@ -42,8 +47,12 @@ class PointOfSale(Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="points_of_sale")
-    advisors: Mapped[list["Advisor"]] = relationship(back_populates="point_of_sale")
-    leads: Mapped[list["Lead"]] = relationship(back_populates="point_of_sale")
+    advisors: Mapped[list["Advisor"]] = relationship(
+        back_populates="point_of_sale", foreign_keys="Advisor.point_of_sale_id"
+    )
+    leads: Mapped[list["Lead"]] = relationship(
+        back_populates="point_of_sale", foreign_keys="Lead.point_of_sale_id"
+    )
 
 
 class User(Base):

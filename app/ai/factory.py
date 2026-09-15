@@ -5,16 +5,76 @@ from app.ai.ollama import OllamaExtractor
 from app.ai.openrouter import OpenRouterExtractor
 from app.config import Settings, get_settings
 
+# Proveedores admitidos por la factory. Producción solo acepta proveedores
+# remotos: un Ollama local no es una configuración válida de despliegue.
+KNOWN_PROVIDERS = frozenset({"ollama", "openrouter"})
+PRODUCTION_PROVIDERS = frozenset({"openrouter"})
+PRODUCTION_ENVS = frozenset({"production", "prod"})
+
 
 class UnknownProviderError(ValueError):
     pass
+
+
+class AIProviderConfigError(RuntimeError):
+    """Configuración de IA inválida. El mensaje nunca contiene secretos."""
+
+
+def resolve_provider(settings: Settings) -> str:
+    return (settings.ai_provider or "").strip().lower()
+
+
+def is_production(settings: Settings) -> bool:
+    return (settings.app_env or "").strip().lower() in PRODUCTION_ENVS
+
+
+def validate_ai_configuration(settings: Settings) -> None:
+    """Valida la configuración de IA según el entorno.
+
+    En desarrollo (por defecto) cualquier proveedor conocido es válido. En
+    producción se exige un proveedor remoto configurado; si algo falta, se
+    levanta ``AIProviderConfigError`` con el nombre de la variable, jamás su
+    valor.
+    """
+    provider = resolve_provider(settings)
+
+    if provider and provider not in KNOWN_PROVIDERS:
+        raise AIProviderConfigError(
+            "AI_PROVIDER desconocido: "
+            f"{provider!r}. Proveedores válidos: {sorted(KNOWN_PROVIDERS)}."
+        )
+
+    if not is_production(settings):
+        return
+
+    if not provider:
+        raise AIProviderConfigError(
+            "APP_ENV=production requiere AI_PROVIDER configurado con un "
+            "proveedor remoto (p. ej. openrouter)."
+        )
+    if provider not in PRODUCTION_PROVIDERS:
+        raise AIProviderConfigError(
+            f"AI_PROVIDER={provider!r} no está permitido en producción; "
+            "configure un proveedor remoto (openrouter) y sus credenciales."
+        )
+    if provider == "openrouter":
+        if not settings.openrouter_api_key:
+            raise AIProviderConfigError(
+                "OPENROUTER_API_KEY es obligatoria cuando "
+                "AI_PROVIDER=openrouter en producción."
+            )
+        if not settings.openrouter_model:
+            raise AIProviderConfigError(
+                "OPENROUTER_MODEL es obligatorio cuando "
+                "AI_PROVIDER=openrouter en producción."
+            )
 
 
 def build_extractor(
     provider: str | None = None, settings: Settings | None = None
 ) -> AIExtractor:
     settings = settings or get_settings()
-    resolved = (provider or settings.ai_provider or "").strip().lower()
+    resolved = (provider or resolve_provider(settings)).strip().lower()
 
     if resolved == "ollama":
         return OllamaExtractor(

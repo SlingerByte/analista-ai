@@ -27,6 +27,15 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 UNKNOWN = "Desconocido"
 
+# Dimensiones que sí explican la prioridad (comercial + urgencia). `quality`
+# es una dimensión separada que no entra a `queue` y no debe mostrarse como
+# si sumara a la prioridad.
+PRIORITY_DIMENSIONS = ("commercial", "urgency")
+
+
+def _priority_reasons(reasons) -> list:
+    return [r for r in (reasons or []) if r.get("dimension") in PRIORITY_DIMENSIONS]
+
 
 def _latest_run_date(session: Session, advisor_id: str) -> date | None:
     return session.scalar(
@@ -373,7 +382,7 @@ def lead_detail(
             "lead": lead,
             "score": score,
             "model": _model_label(lead, catalog),
-            "reasons": list(score.reasons) if score and score.reasons else [],
+            "reasons": _priority_reasons(score.reasons if score else None),
             "conversations": conv_rows,
             "unknown": UNKNOWN,
             "bool_label": _bool_label,

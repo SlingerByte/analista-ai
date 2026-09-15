@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.ai.base import AIExtractor
 from app.ai.prompt import EXTRACTION_PROMPT_VERSION
 from app.ai.schema import SCHEMA_VERSION, ConversationInput, Message
+from app.ai.validation import split_transcript_messages, validate_extraction
 from app.ingestion.loaders import sha256_of
 from app.models import AIExtraction, Conversation
 
@@ -162,7 +163,21 @@ def process_conversation(
 
     if outcome.success and outcome.schema_valid and outcome.result is not None:
         status, error = STATUS_SUCCESS, None
-        fields, raw_response = outcome.result.model_dump(), None
+        # Validación determinista: solo sobrevive lo que tenga evidencia del
+        # cliente. Sin esto, una alucinación del modelo llegaría al scoring.
+        client_messages, advisor_messages = split_transcript_messages(
+            conversation.messages or []
+        )
+        validation = validate_extraction(
+            outcome.result, client_messages, advisor_messages
+        )
+        fields = validation.extraction.model_dump()
+        if validation.invalidated:
+            fields["validation"] = {
+                "invalidated": validation.invalidated,
+                "validated": list(validation.validated),
+            }
+        raw_response = None
     else:
         # Error controlado: se persiste el motivo (sanitizado, sin secretos)
         # y la conversación queda identificable para reproceso posterior.

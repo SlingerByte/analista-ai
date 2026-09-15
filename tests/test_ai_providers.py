@@ -5,7 +5,12 @@ import json
 import pytest
 
 from app.ai.base import AIRequestError
-from app.ai.factory import UnknownProviderError, build_extractor
+from app.ai.factory import (
+    AIProviderConfigError,
+    UnknownProviderError,
+    build_extractor,
+    validate_ai_configuration,
+)
 from app.ai.ollama import OllamaExtractor
 from app.ai.openrouter import OpenRouterExtractor
 from app.ai.schema import ConversationInput, Message
@@ -196,3 +201,80 @@ def test_openrouter_list_free_models(monkeypatch):
         },
     )
     assert extractor.list_free_models() == ["free/one"]
+
+
+# --- Producción: validación de configuración -------------------------------
+
+
+def test_dev_ollama_configuration_is_valid():
+    validate_ai_configuration(_settings(app_env="development", ai_provider="ollama"))
+
+
+def test_unknown_provider_is_rejected():
+    with pytest.raises(AIProviderConfigError):
+        validate_ai_configuration(_settings(app_env="development", ai_provider="unknown"))
+
+
+def test_production_requires_provider():
+    with pytest.raises(AIProviderConfigError, match="AI_PROVIDER"):
+        validate_ai_configuration(_settings(app_env="production", ai_provider=""))
+
+
+def test_production_rejects_ollama():
+    with pytest.raises(AIProviderConfigError, match="no está permitido"):
+        validate_ai_configuration(
+            _settings(
+                app_env="production",
+                ai_provider="ollama",
+                ollama_model="llama3.2",
+            )
+        )
+
+
+def test_production_openrouter_requires_api_key():
+    with pytest.raises(AIProviderConfigError, match="OPENROUTER_API_KEY"):
+        validate_ai_configuration(
+            _settings(
+                app_env="production",
+                ai_provider="openrouter",
+                openrouter_model="some/model",
+                openrouter_api_key=None,
+            )
+        )
+
+
+def test_production_openrouter_requires_model():
+    with pytest.raises(AIProviderConfigError, match="OPENROUTER_MODEL"):
+        validate_ai_configuration(
+            _settings(
+                app_env="production",
+                ai_provider="openrouter",
+                openrouter_api_key="secret-value",
+                openrouter_model=None,
+            )
+        )
+
+
+def test_production_openrouter_with_key_and_model_is_valid():
+    validate_ai_configuration(
+        _settings(
+            app_env="production",
+            ai_provider="openrouter",
+            openrouter_api_key="secret-value",
+            openrouter_model="some/model",
+        )
+    )
+
+
+def test_production_config_error_never_leaks_secret():
+    with pytest.raises(AIProviderConfigError) as excinfo:
+        validate_ai_configuration(
+            _settings(
+                app_env="production",
+                ai_provider="openrouter",
+                openrouter_api_key="secret-value",
+                openrouter_model=None,
+            )
+        )
+    assert "secret-value" not in str(excinfo.value)
+

@@ -57,7 +57,12 @@
           <dt>Versión</dt><dd>{{ score.score_version }}</dd>
         </dl>
         {% if reasons %}
-        <h3>Razones del score</h3>
+        <h3>Explicación de la prioridad</h3>
+        <p style="color:#475569;font-size:0.85rem;margin:0.25rem 0 0.6rem;">
+          Contribuciones de prioridad comercial y urgencia (las que forman el
+          score de cola). La <strong>calidad del dato</strong> se evalúa como
+          dimensión separada y no modifica la prioridad.
+        </p>
         <table>
           <thead><tr><th>Código</th><th>Dimensión</th><th>Detalle</th><th>Contribución</th></tr></thead>
           <tbody>

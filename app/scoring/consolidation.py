@@ -11,10 +11,11 @@ Reglas (conservadoras, sin invención):
   ``model_interes`` de la IA nunca se convierte en precio ni en presupuesto.
 - Recencia = mayor ``extraction_id`` (orden de procesamiento, determinista).
 - En conflictos se prefiere el valor más reciente; a igualdad, el que trae
-  evidencia. La validez de la evidencia es responsabilidad de la capa
-  extractora (prompt AI-1A + validación); aquí no se descarta por falta de
-  evidencia porque el schema no guarda el emisor junto a cada cita
-  (validación determinista futura, pendiente).
+  evidencia.
+- La validez de la evidencia se garantiza **antes** de persistir, en
+  ``app/ai/validation.py`` (evidencia literal del cliente + monto en campos
+  monetarios). Aquí se consolida lo ya validado: un campo sin evidencia válida
+  nunca llega a ``fields``.
 """
 
 from __future__ import annotations

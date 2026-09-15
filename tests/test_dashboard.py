@@ -112,7 +112,9 @@ def client(tmp_path):
         session.add_all([
             _score("LD-A", 80.0, "Alta",
                    [{"code": "INTENCION_ALTA", "dimension": "commercial",
-                     "text": "Quiere comprar", "contribution": 30.0}]),
+                     "text": "Quiere comprar", "contribution": 30.0},
+                    {"code": "TELEFONO_VALIDO", "dimension": "quality",
+                     "text": "Teléfono contactable.", "contribution": 30.0}]),
             _score("LD-B", 50.0, "Media"),
             _score("LD-C", 20.0, "Baja"),
             _score("LD-OTHER", 95.0, "Alta"),
@@ -229,6 +231,35 @@ def test_detalle_muestra_razones_y_senales(client):
     assert "financiacion" in text
     assert "ranking #1" in text
     assert "Desconocido" in text
+
+
+def test_explicacion_prioridad_no_mezcla_quality(client):
+    text = response_text(client, "/leads/LD-A")
+    # La razón comercial sí explica la prioridad.
+    assert "INTENCION_ALTA" in text
+    # La calidad es dimensión separada: no aparece como contribución de prioridad.
+    assert "TELEFONO_VALIDO" not in text
+    assert "calidad del dato" in text.lower()
+
+
+def test_priority_reasons_excluye_quality():
+    from app.dashboard import _priority_reasons
+
+    reasons = [
+        {"code": "A", "dimension": "commercial", "text": "", "contribution": 1.0},
+        {"code": "B", "dimension": "urgency", "text": "", "contribution": 2.0},
+        {"code": "C", "dimension": "quality", "text": "", "contribution": 3.0},
+    ]
+    assert [r["code"] for r in _priority_reasons(reasons)] == ["A", "B"]
+    assert _priority_reasons(None) == []
+
+
+def test_lista_y_detalle_comparten_el_score_de_cola(client):
+    list_text = response_text(client, "/")
+    detail_text = response_text(client, "/leads/LD-A")
+    # El detalle muestra el mismo queue_score (80.0) que ordena la lista.
+    assert "80.0" in detail_text
+    assert list_text.index("Ana Alta") < list_text.index("Beto Medio")
 
 
 def test_detalle_sin_extraccion_y_sin_conversacion(client):

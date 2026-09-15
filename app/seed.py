@@ -118,6 +118,11 @@ def seed(session: Session, data_dir: Path = DATA_DIR) -> dict[str, int]:
 
     for row in asesores:
         _upsert_advisor(session, row)
+    # Hacer visibles los asesores como persistentes antes de crear los usuarios
+    # demo: `SessionLocal` usa autoflush=False, así que un `session.get()` sin
+    # flush no encontraría los asesores pendientes y el usuario demo del asesor
+    # no se crearía en una base nueva.
+    session.flush()
 
     for row in catalogo:
         _upsert_catalog_item(session, row)
@@ -147,6 +152,9 @@ def _upsert_demo_user(
     company_id: str | None,
     advisor_id: str | None,
 ) -> None:
+    # Explícitamente independiente de autoflush: si una versión previa aún
+    # está pendiente en la sesión, se envía antes de consultar por email.
+    session.flush()
     existing = session.scalar(sa.select(User).where(User.email == email))
     password_hash = hash_password(password)
     if existing is None:
@@ -169,6 +177,9 @@ def _upsert_demo_user(
 def _seed_demo_users(session: Session) -> None:
     """Usuarios demo idempotentes (solo desarrollo; credenciales por entorno)."""
     settings = get_settings()
+    # Igual que en `_upsert_demo_user`: no depender de autoflush para que el
+    # asesor recién insertado sea visible con `session.get()`.
+    session.flush()
     advisor = session.get(Advisor, settings.advisor_demo_advisor_id)
     if advisor is not None:
         _upsert_demo_user(

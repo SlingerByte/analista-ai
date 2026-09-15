@@ -19,11 +19,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import sqlalchemy as sa
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.ai.base import AIExtractor
 from app.ai.prompt import EXTRACTION_PROMPT_VERSION
-from app.ai.schema import SCHEMA_VERSION, ConversationInput, Message
+from app.ai.schema import SCHEMA_VERSION, ConversationInput, ExtractionResult, Message
 from app.ai.validation import split_transcript_messages, validate_extraction
 from app.ingestion.loaders import sha256_of
 from app.models import AIExtraction, Conversation
@@ -128,6 +129,34 @@ def _find_reusable(
     )
 
 
+def _validated_fields(conversation: Conversation, result: ExtractionResult) -> dict:
+    """Aplica la validación determinista y devuelve los `fields` a persistir."""
+    client_messages, advisor_messages = split_transcript_messages(
+        conversation.messages or []
+    )
+    validation = validate_extraction(result, client_messages, advisor_messages)
+    fields = validation.extraction.model_dump()
+    if validation.invalidated:
+        fields["validation"] = {
+            "invalidated": validation.invalidated,
+            "validated": list(validation.validated),
+        }
+    return fields
+
+
+def _revalidate_reused(
+    conversation: Conversation, extraction: AIExtraction
+) -> dict | None:
+    """Revalida una extracción reutilizada. None si `fields` no es reconstruible."""
+    if not isinstance(extraction.fields, dict):
+        return None
+    try:
+        result = ExtractionResult.model_validate(extraction.fields)
+    except ValidationError:
+        return None
+    return _validated_fields(conversation, result)
+
+
 def process_conversation(
     session: Session,
     conversation_id: str,
@@ -146,18 +175,26 @@ def process_conversation(
         transcript, EXTRACTION_PROMPT_VERSION, SCHEMA_VERSION
     )
 
+    reusable: AIExtraction | None = None
     if not force:
-        existing = _find_reusable(session, conversation_id, input_hash, extractor)
-        if existing is not None:
-            existing.is_current = True
-            _mark_current(session, conversation_id, existing.extraction_id)
-            session.commit()
-            return ProcessResult(
-                conversation_id=conversation_id,
-                lead_id=conversation.lead_id,
-                reused=True,
-                extraction=existing,
-            )
+        reusable = _find_reusable(session, conversation_id, input_hash, extractor)
+        if reusable is not None:
+            # Ninguna reutilización se salta la validación: una fila legacy
+            # (previa a la validación) se revalida y se corrige en su lugar.
+            revalidated = _revalidate_reused(conversation, reusable)
+            if revalidated is not None:
+                if reusable.fields != revalidated:
+                    reusable.fields = revalidated
+                    session.flush()
+                reusable.is_current = True
+                _mark_current(session, conversation_id, reusable.extraction_id)
+                session.commit()
+                return ProcessResult(
+                    conversation_id=conversation_id,
+                    lead_id=conversation.lead_id,
+                    reused=True,
+                    extraction=reusable,
+                )
 
     outcome = extractor.extract(conversation_input)
 
@@ -165,18 +202,7 @@ def process_conversation(
         status, error = STATUS_SUCCESS, None
         # Validación determinista: solo sobrevive lo que tenga evidencia del
         # cliente. Sin esto, una alucinación del modelo llegaría al scoring.
-        client_messages, advisor_messages = split_transcript_messages(
-            conversation.messages or []
-        )
-        validation = validate_extraction(
-            outcome.result, client_messages, advisor_messages
-        )
-        fields = validation.extraction.model_dump()
-        if validation.invalidated:
-            fields["validation"] = {
-                "invalidated": validation.invalidated,
-                "validated": list(validation.validated),
-            }
+        fields = _validated_fields(conversation, outcome.result)
         raw_response = None
     else:
         # Error controlado: se persiste el motivo (sanitizado, sin secretos)
@@ -209,6 +235,26 @@ def process_conversation(
                 reused=False,
                 extraction=extraction,
             )
+
+    if reusable is not None:
+        # `fields` no reconstruible: se reextrae y se actualiza la misma fila
+        # para respetar el unique (conversation_id, input_hash).
+        reusable.lead_id = conversation.lead_id
+        reusable.status = status
+        reusable.error = error
+        reusable.fields = fields
+        reusable.raw_response = raw_response
+        reusable.latency_ms = outcome.latency_ms
+        reusable.is_current = True
+        session.flush()
+        _mark_current(session, conversation_id, reusable.extraction_id)
+        session.commit()
+        return ProcessResult(
+            conversation_id=conversation_id,
+            lead_id=conversation.lead_id,
+            reused=False,
+            extraction=reusable,
+        )
 
     extraction = AIExtraction(
         conversation_id=conversation_id,

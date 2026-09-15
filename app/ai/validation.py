@@ -61,6 +61,22 @@ _AMOUNT_DOLLAR_RE = re.compile(r"\$\s*([\d.,]+)")
 _AMOUNT_PLAIN_RE = re.compile(r"\b(\d{5,})\b")
 _AMOUNT_GROUPED_RE = re.compile(r"\b(\d{1,3}(?:[.,]\d{3})+)\b")
 
+# El modelo suele citar con el emisor delante ("cliente: ..."). Se reconoce el
+# prefijo para no rechazar evidencia válida, pero el emisor se valida: una
+# cita atribuida al asesor nunca cuenta como evidencia del cliente.
+_SENDER_ALIASES = {
+    "cliente": "cliente",
+    "client": "cliente",
+    "customer": "cliente",
+    "usuario": "cliente",
+    "asesor": "asesor",
+    "advisor": "asesor",
+    "agent": "asesor",
+    "agente": "asesor",
+    "vendedor": "asesor",
+}
+_PREFIX_RE = re.compile(r"^\s*([^\s:]+)\s*:\s*(.*)$", re.DOTALL)
+
 
 @dataclass(frozen=True)
 class EvidenceValidation:
@@ -94,6 +110,20 @@ def _evidence_in(evidence: str, messages: Sequence[str]) -> bool:
 
 def _is_non_informative(evidence: str) -> bool:
     return _normalize_for_match(evidence) in NON_INFORMATIVE_REPLIES
+
+
+def _split_evidence(evidence: str) -> tuple[str | None, str]:
+    """Separa un prefijo de emisor conocido del cuerpo de la cita.
+
+    Devuelve ``(emisor_canónico | None, cuerpo)``. Solo reconoce prefijos de
+    emisor conocidos para no confundir dos puntos legítimos dentro de la cita.
+    """
+    match = _PREFIX_RE.match(evidence)
+    if match:
+        token = _strip_accents_lower(match.group(1)).strip()
+        if token in _SENDER_ALIASES:
+            return _SENDER_ALIASES[token], match.group(2)
+    return None, evidence
 
 
 def _to_float(token: str) -> float | None:
@@ -155,13 +185,20 @@ def _invalidation_reason(
 ) -> str | None:
     if not isinstance(evidence, str) or not evidence.strip():
         return "missing_evidence"
-    if _is_non_informative(evidence):
+    attributed_to, body = _split_evidence(evidence)
+    if not body.strip():
+        return "missing_evidence"
+    if _is_non_informative(body):
         return "non_informative_evidence"
-    if not _evidence_in(evidence, client_messages):
-        if _evidence_in(evidence, advisor_messages):
+    # La evidencia debe corresponder a un mensaje del cliente. El prefijo
+    # declarado se respeta: "asesor: ..." nunca valida un campo del cliente.
+    if attributed_to == "asesor":
+        return "advisor_evidence"
+    if not _evidence_in(body, client_messages):
+        if _evidence_in(body, advisor_messages):
             return "advisor_evidence"
         return "evidence_not_in_conversation"
-    if name in AMOUNT_FIELDS and not amount_matches_evidence(value, evidence):
+    if name in AMOUNT_FIELDS and not amount_matches_evidence(value, body):
         return "amount_not_in_evidence"
     return None
 

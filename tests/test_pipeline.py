@@ -212,3 +212,29 @@ def test_6_sin_ia_y_proveedor_no_disponible(setup):
         assert report["status"] == "completed"
         assert report["steps"]["ai"]["status"] == "skipped"
         assert extractor.calls == 0
+
+
+def test_7_pipeline_batch_enforces_ai_configuration(setup, monkeypatch):
+    """El entrypoint batch aplica la misma política que el arranque web."""
+    maker, data_dir, _ = setup
+    from app.ai.factory import AIProviderConfigError
+
+    def _raise(_settings):
+        raise AIProviderConfigError("AI_PROVIDER='ollama' no está permitido en producción")
+
+    built = {"count": 0}
+
+    def _build():
+        built["count"] += 1
+        raise AssertionError("no debe construir el extractor sin configuración válida")
+
+    monkeypatch.setattr(pipeline_service, "validate_ai_configuration", _raise)
+    monkeypatch.setattr(pipeline_service, "build_extractor", _build)
+
+    with maker() as session:
+        report = run_pipeline(session, run_date=DAY, data_dir=data_dir)
+
+    assert report["status"] == "failed"
+    assert report["steps"]["ai"]["status"] == "failed"
+    assert "IA inválida" in report["steps"]["ai"]["error"]
+    assert built["count"] == 0

@@ -278,3 +278,49 @@ def test_production_config_error_never_leaks_secret():
         )
     assert "secret-value" not in str(excinfo.value)
 
+
+# --- Guard de configuración en entrypoints batch ----------------------------
+
+
+def test_batch_ai_entrypoint_enforces_production_guard(monkeypatch, capsys):
+    import app.ai.__main__ as ai_main
+
+    monkeypatch.setattr(
+        ai_main,
+        "get_settings",
+        lambda: Settings(app_env="production", ai_provider="ollama"),
+    )
+    with pytest.raises(SystemExit):
+        ai_main.main(["--limit", "1"])
+    assert "inválida" in capsys.readouterr().out
+
+
+def test_batch_ai_entrypoint_allows_production_openrouter(monkeypatch, capsys):
+    import app.ai.__main__ as ai_main
+
+    class _Unavailable:
+        provider = "openrouter"
+        model = "some/model"
+
+        def availability(self):
+            return False, "omit-provider-not-ready"
+
+    monkeypatch.setattr(
+        ai_main,
+        "get_settings",
+        lambda: Settings(
+            app_env="production",
+            ai_provider="openrouter",
+            openrouter_api_key="k",
+            openrouter_model="some/model",
+        ),
+    )
+    monkeypatch.setattr(ai_main, "build_extractor", lambda settings=None: _Unavailable())
+
+    with pytest.raises(SystemExit):
+        ai_main.main(["--limit", "1"])
+    out = capsys.readouterr().out
+    assert "omit-provider-not-ready" in out  # pasó el guard de configuración
+    assert "inválida" not in out
+
+

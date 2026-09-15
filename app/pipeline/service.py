@@ -24,9 +24,14 @@ from pathlib import Path
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from app.ai.factory import build_extractor
+from app.ai.factory import (
+    AIProviderConfigError,
+    build_extractor,
+    validate_ai_configuration,
+)
 from app.ai.service import process_pending
 from app.assignment.service import run_assignment
+from app.config import get_settings
 from app.identity.service import run_identity
 from app.ingestion import loaders
 from app.ingestion.service import run_ingestion
@@ -96,6 +101,12 @@ def run_pipeline(
         _record("identity", identity)
 
         if run_ai:
+            # Misma política que el arranque web: en producción no se admite
+            # usar silenciosamente el Ollama local como proveedor.
+            try:
+                validate_ai_configuration(get_settings())
+            except AIProviderConfigError as exc:
+                raise RuntimeError(f"Configuración de IA inválida: {exc}") from exc
             extractor = build_extractor()
             available, reason = extractor.availability()
             if not available:

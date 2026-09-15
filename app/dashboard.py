@@ -7,8 +7,10 @@ identidad. Rutas de negocio requieren login; /login y /health son públicas.
 
 from __future__ import annotations
 
+import math
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlencode
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
@@ -96,12 +98,19 @@ def _bool_label(value: bool | None) -> str:
 
 
 def _row_for_assignment(session: Session, assignment: Assignment,
-                        owner_name: str | None = None) -> dict | None:
+                         owner_name: str | None = None) -> dict | None:
     lead = session.get(Lead, assignment.lead_id)
     if lead is None:
         return None
     score = _current_score(session, lead.lead_id)
     catalog = session.get(CatalogItem, lead.sku) if lead.sku else None
+    return _build_row(assignment, lead, score, catalog, owner_name)
+
+
+def _build_row(assignment: Assignment, lead: Lead, score: LeadScore | None,
+               catalog: CatalogItem | None,
+               owner_name: str | None = None) -> dict:
+    """Construye la fila de presentación desde objetos ya cargados."""
     return {
         "assignment": assignment,
         "lead": lead,
@@ -114,6 +123,141 @@ def _row_for_assignment(session: Session, assignment: Assignment,
         "status": (lead.status or UNKNOWN),
         "owner_name": owner_name,
     }
+
+
+# --- Supervisión: batch-load + paginación (perf, sin cambio de alcance) --------
+
+PAGE_SIZE = 50
+
+
+def _parse_page(raw: str | None) -> int:
+    """Página segura: inválidos, 0 y negativos → 1."""
+    try:
+        page = int((raw or "").strip() or "1")
+    except (TypeError, ValueError):
+        return 1
+    return page if page >= 1 else 1
+
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _model_label_column():
+    """Etiqueta de modelo como expresión SQL (misma regla que _model_label)."""
+    catalog_label = (
+        sa.func.coalesce(CatalogItem.brand, "")
+        + " "
+        + sa.func.coalesce(CatalogItem.line, "")
+    )
+    return sa.case(
+        (CatalogItem.sku.is_not(None), catalog_label),
+        else_=Lead.model_text_raw,
+    )
+
+
+def _supervision_ids_stmt(scope_companies: list[str], resolved: date,
+                          pos: str | None, asesor: str | None,
+                          banda: str | None, estado: str | None,
+                          modelo: str | None):
+    """IDs de assignments del conjunto filtrado (sin paginar).
+
+    Los filtros de banda/estado/modelo se aplican en SQL con JOINs para no
+    cargar todas las filas en memoria. El orden/paginación se aplica después.
+    """
+    stmt = (
+        sa.select(Assignment.assignment_id)
+        .where(
+            Assignment.is_current.is_(True),
+            Assignment.company_id.in_(scope_companies),
+            Assignment.run_date == resolved,
+        )
+    )
+    if pos:
+        stmt = stmt.where(Assignment.point_of_sale_id == pos)
+    if asesor:
+        stmt = stmt.where(Assignment.advisor_id == asesor)
+    if estado or banda or modelo:
+        stmt = stmt.join(Lead, Lead.lead_id == Assignment.lead_id)
+    if banda:
+        stmt = stmt.join(
+            LeadScore,
+            (LeadScore.lead_id == Assignment.lead_id)
+            & (LeadScore.is_current.is_(True)),
+        ).where(LeadScore.band == banda)
+    if estado:
+        stmt = stmt.where(Lead.status == estado)
+    if modelo:
+        needle = (modelo or "").strip().lower()
+        if needle:
+            stmt = stmt.outerjoin(
+                CatalogItem, CatalogItem.sku == Lead.sku
+            ).where(
+                sa.func.lower(_model_label_column()).like(
+                    f"%{_escape_like(needle)}%", escape="\\"
+                )
+            )
+    return stmt
+
+
+def _supervision_order():
+    return (Assignment.company_id, Assignment.point_of_sale_id,
+            Assignment.priority_rank.asc())
+
+
+def _batch_lead_details(session: Session, assignments: list[Assignment]
+                        ) -> tuple[dict, dict, dict, dict]:
+    """Carga en batch (WHERE IN) los datos de una lista de assignments.
+
+    Retorna (leads, scores, catalogs, advisors): score = vigente de mayor
+    score_id por lead (igual que _current_score); advisors por id.
+    """
+    lead_ids = list({a.lead_id for a in assignments})
+    skus: set[str] = set()
+    leads: dict[str, Lead] = {}
+    if lead_ids:
+        for lead in session.scalars(
+            sa.select(Lead).where(Lead.lead_id.in_(lead_ids))
+        ).all():
+            leads[lead.lead_id] = lead
+            if lead.sku:
+                skus.add(lead.sku)
+    scores: dict[str, LeadScore] = {}
+    if lead_ids:
+        for score in session.scalars(
+            sa.select(LeadScore)
+            .where(LeadScore.lead_id.in_(lead_ids),
+                   LeadScore.is_current.is_(True))
+            .order_by(LeadScore.score_id.desc())
+        ).all():
+            scores.setdefault(score.lead_id, score)
+    catalogs: dict[str, CatalogItem] = {}
+    if skus:
+        for item in session.scalars(
+            sa.select(CatalogItem).where(CatalogItem.sku.in_(skus))
+        ).all():
+            catalogs[item.sku] = item
+    advisor_ids = list({a.advisor_id for a in assignments if a.advisor_id})
+    advisors: dict[str, Advisor] = {}
+    if advisor_ids:
+        for advisor in session.scalars(
+            sa.select(Advisor).where(Advisor.advisor_id.in_(advisor_ids))
+        ).all():
+            advisors[advisor.advisor_id] = advisor
+    return leads, scores, catalogs, advisors
+
+
+def _supervision_row(assignment: Assignment, leads: dict, scores: dict,
+                     catalogs: dict, advisors: dict) -> dict | None:
+    lead = leads.get(assignment.lead_id)
+    if lead is None:
+        return None
+    score = scores.get(lead.lead_id)
+    catalog = catalogs.get(lead.sku) if lead.sku else None
+    owner = advisors.get(assignment.advisor_id) if assignment.advisor_id else None
+    return _build_row(
+        assignment, lead, score, catalog,
+        owner.name if owner else "Sin asignar (overflow)")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -207,6 +351,7 @@ def supervision(
     retry_assigned: int | None = Query(default=None),
     retry_overflow: int | None = Query(default=None),
     retry_reused: int | None = Query(default=None),
+    page: str | None = Query(default=None),
 ):
     if isinstance(user, RedirectResponse):
         return user
@@ -244,49 +389,107 @@ def supervision(
             Assignment.is_current.is_(True),
             Assignment.company_id.in_(scope_companies) if scope_companies else sa.false())
     )
-    assignments = session.scalars(
-        sa.select(Assignment)
-        .where(
-            Assignment.is_current.is_(True),
-            Assignment.company_id.in_(scope_companies) if scope_companies else sa.false(),
-            Assignment.run_date == resolved if resolved else sa.true(),
-        )
-        .order_by(Assignment.company_id, Assignment.point_of_sale_id,
-                  Assignment.priority_rank.asc())
-    ).all() if resolved and scope_companies else []
+    # Conjunto filtrado (scope + filtros) como subconsulta de IDs: el total,
+    # la página y los agregados se calculan sobre el mismo conjunto sin traer
+    # todas las filas a memoria.
+    if resolved and scope_companies:
+        ids_sub = _supervision_ids_stmt(
+            scope_companies, resolved, pos, asesor, banda, estado, modelo
+        ).subquery()
+        ids_select = sa.select(ids_sub.c.assignment_id)
+        total = session.scalar(
+            sa.select(sa.func.count()).select_from(ids_sub)
+        ) or 0
+    else:
+        ids_sub = None
+        ids_select = None
+        total = 0
 
-    advisors = {a.advisor_id: a for a in session.scalars(sa.select(Advisor)).all()}
+    total_pages = max(1, math.ceil(total / PAGE_SIZE))
+    page_number = min(_parse_page(page), total_pages)
+    offset = (page_number - 1) * PAGE_SIZE
+
+    if total:
+        page_assignments = session.scalars(
+            sa.select(Assignment)
+            .where(Assignment.assignment_id.in_(ids_select))
+            .order_by(*_supervision_order())
+            .limit(PAGE_SIZE)
+            .offset(offset)
+        ).all()
+        overflow_assignments = session.scalars(
+            sa.select(Assignment)
+            .where(Assignment.assignment_id.in_(ids_select),
+                   Assignment.status == STATUS_OVERFLOW)
+            .order_by(*_supervision_order())
+        ).all()
+        leads, scores, catalogs, advisors = _batch_lead_details(
+            session, list(page_assignments) + list(overflow_assignments))
+        counts_rows = session.execute(
+            sa.select(LeadScore.band,
+                      sa.func.count(sa.distinct(Assignment.assignment_id)))
+            .select_from(Assignment)
+            .join(LeadScore,
+                  (LeadScore.lead_id == Assignment.lead_id)
+                  & (LeadScore.is_current.is_(True)))
+            .where(Assignment.assignment_id.in_(ids_select))
+            .group_by(LeadScore.band)
+        ).all()
+        status_rows = session.execute(
+            sa.select(Assignment.status, sa.func.count())
+            .where(Assignment.assignment_id.in_(ids_select))
+            .group_by(Assignment.status)
+        ).all()
+        status_options = sorted({
+            (status or UNKNOWN)
+            for (status,) in session.execute(
+                sa.select(Lead.status.distinct())
+                .select_from(Lead)
+                .join(Assignment, Assignment.lead_id == Lead.lead_id)
+                .where(Assignment.assignment_id.in_(ids_select))
+            ).all()
+        })
+        option_pairs = session.execute(
+            sa.select(Assignment.point_of_sale_id.distinct(),
+                      Assignment.advisor_id)
+            .where(
+                Assignment.is_current.is_(True),
+                Assignment.company_id.in_(scope_companies),
+                Assignment.run_date == resolved,
+            )
+        ).all()
+        pos_options = sorted({pos_id for pos_id, _ in option_pairs if pos_id})
+        advisor_options = sorted({
+            advisor_id for pos_id, advisor_id in option_pairs
+            if advisor_id and (not pos or pos_id == pos)
+        })
+    else:
+        page_assignments = []
+        overflow_assignments = []
+        leads = scores = catalogs = advisors = {}
+        counts_rows = []
+        status_rows = []
+        status_options = []
+        pos_options = []
+        advisor_options = []
+
     rows = []
-    for assignment in assignments:
-        if pos and assignment.point_of_sale_id != pos:
-            continue
-        if asesor and assignment.advisor_id != asesor:
-            continue
-        owner = advisors.get(assignment.advisor_id) if assignment.advisor_id else None
-        row = _row_for_assignment(
-            session, assignment, owner.name if owner else "Sin asignar (overflow)")
-        if row is None:
-            continue
-        if banda and row["band"] != banda:
-            continue
-        if estado and row["status"] != estado:
-            continue
-        if modelo and modelo.strip().lower() not in row["model"].lower():
-            continue
-        rows.append(row)
+    for assignment in page_assignments:
+        row = _supervision_row(assignment, leads, scores, catalogs, advisors)
+        if row is not None:
+            rows.append(row)
     counts = {"Alta": 0, "Media": 0, "Baja": 0}
-    for row in rows:
-        if row["band"] in counts:
-            counts[row["band"]] += 1
-    assigned_total = sum(
-        1 for row in rows if row["assignment"].status == STATUS_ASSIGNED
-    )
-    overflow_rows = [
-        row for row in rows if row["assignment"].status == STATUS_OVERFLOW
-    ]
-    pos_options = sorted({a.point_of_sale_id for a in assignments})
-    advisor_options = sorted({a.advisor_id for a in assignments if a.advisor_id
-                              and (not pos or a.point_of_sale_id == pos)})
+    for band, count in counts_rows:
+        if band in counts:
+            counts[band] += count
+    status_counts = dict(status_rows)
+    assigned_total = status_counts.get(STATUS_ASSIGNED, 0)
+    overflow_total = status_counts.get(STATUS_OVERFLOW, 0)
+    overflow_rows = []
+    for assignment in overflow_assignments:
+        row = _supervision_row(assignment, leads, scores, catalogs, advisors)
+        if row is not None:
+            overflow_rows.append(row)
     supervisor_options = sorted(
         email for (email,) in session.execute(
             sa.select(User.email).where(
@@ -294,7 +497,25 @@ def supervision(
                 User.company_id.in_(scope_companies) if scope_companies else sa.false())
         ).all()
     ) if is_admin else []
-    status_options = sorted({row["status"] for row in rows})
+    base_params = {}
+    if run_date:
+        base_params["run_date"] = run_date.isoformat()
+    for key, value in (("empresa", empresa), ("supervisor", supervisor),
+                       ("pos", pos), ("asesor", asesor), ("banda", banda),
+                       ("estado", estado), ("modelo", modelo)):
+        if value:
+            base_params[key] = value
+
+    def _supervision_url(target_page: int) -> str:
+        return "/supervision?" + urlencode({**base_params, "page": target_page})
+
+    pagination = {
+        "page": page_number,
+        "total_pages": total_pages,
+        "total": total,
+        "prev_url": _supervision_url(page_number - 1) if page_number > 1 else None,
+        "next_url": _supervision_url(page_number + 1) if page_number < total_pages else None,
+    }
     return templates.TemplateResponse(
         request=request,
         name="supervision.html",
@@ -306,10 +527,11 @@ def supervision(
             "company_label": None if is_admin else (scope_companies[0] if scope_companies else None),
             "run_date": resolved.isoformat() if resolved else None,
             "rows": rows,
-            "total": len(rows),
+            "total": total,
             "assigned_total": assigned_total,
-            "overflow_total": len(overflow_rows),
+            "overflow_total": overflow_total,
             "overflow_rows": overflow_rows,
+            "pagination": pagination,
             "retry": {
                 "ran": retry is not None,
                 "assigned": retry_assigned,
@@ -327,6 +549,7 @@ def supervision(
             "advisor_options": advisor_options,
             "band_options": ["Alta", "Media", "Baja"],
             "status_options": status_options,
+            "page_size": PAGE_SIZE,
         },
     )
 

@@ -138,6 +138,17 @@
       {% else %}
       <div class="empty">Sin asignaciones para los criterios seleccionados.</div>
       {% endif %}
+      {% if pagination.total_pages > 1 %}
+      <nav aria-label="Paginación" style="margin:1rem 0;display:flex;gap:1rem;align-items:center;">
+        {% if pagination.prev_url %}
+        <a href="{{ pagination.prev_url }}">Anterior</a>
+        {% endif %}
+        <span>Página {{ pagination.page }} de {{ pagination.total_pages }} ({{ pagination.total }} resultados)</span>
+        {% if pagination.next_url %}
+        <a href="{{ pagination.next_url }}">Siguiente</a>
+        {% endif %}
+      </nav>
+      {% endif %}
 
       <section style="margin-top:2rem;">
         <h2 style="font-size:1.1rem;">Pendientes de asignación ({{ overflow_total }})</h2>

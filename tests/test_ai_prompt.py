@@ -15,7 +15,7 @@ def _conversation() -> ConversationInput:
 
 
 def test_prompt_version_is_defined():
-    assert EXTRACTION_PROMPT_VERSION == "v2"
+    assert EXTRACTION_PROMPT_VERSION == "v3"
 
 
 def test_prompt_has_system_and_user_messages():
@@ -60,6 +60,28 @@ def test_system_prompt_forbids_boolean_objecion():
     lowered = SYSTEM_PROMPT.lower()
     assert "objecion" in lowered
     assert "boolean" in lowered
+
+
+def test_system_prompt_defines_presupuesto_as_explicit_limit():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "presupuesto" in lowered
+    assert "límite" in lowered or "limite" in lowered
+    assert "mi presupuesto es de 5 millones" in lowered
+    assert "tengo máximo 6 millones" in lowered
+    assert "no me puedo pasar de 7 millones" in lowered
+    assert "entre 5 y 6 millones" in lowered
+
+
+def test_system_prompt_rejects_cash_as_budget():
+    lowered = SYSTEM_PROMPT.lower()
+    assert "dinero disponible" in lowered
+    assert "ya tengo la plata lista" in lowered
+    assert "cuota inicial" in lowered
+    assert "cuota mensual" in lowered
+    assert "precio de la moto" in lowered
+    assert "me alcanza" in lowered
+    assert "presupuesto = null" in lowered
+    assert "valor máximo del rango" in lowered
 
 
 def test_user_prompt_includes_transcript_and_schema_fields():

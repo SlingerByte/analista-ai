@@ -8,7 +8,7 @@ from app.ai.schema import (
     ConversationInput,
 )
 
-EXTRACTION_PROMPT_VERSION = "v2"
+EXTRACTION_PROMPT_VERSION = "v3"
 
 SYSTEM_PROMPT = """\
 Eres un extractor de información estructurada de conversaciones comerciales de WhatsApp
@@ -39,6 +39,24 @@ No invención (prohibido inferir):
   explícitamente ir/agendar/visitar.
 - Respuestas de cortesía ("dale", "bueno", "ok", "quedo atento") NO son intención
   de compra ni solicitud de nada por sí solas.
+
+Presupuesto (regla estricta):
+- "presupuesto" es SOLO una restricción o rango presupuestario declarado
+  explícitamente por el cliente: un límite máximo, un tope o un rango de
+  búsqueda ("mi presupuesto es de 5 millones", "tengo máximo 6 millones",
+  "no me puedo pasar de 7 millones", "busco algo entre 5 y 6 millones").
+- presupuesto != dinero disponible ("ya tengo la plata lista",
+  "tengo 5 millones disponibles", "tengo 5 millones para comprarla",
+  "la quiero de contado, tengo 5 millones").
+- presupuesto != cuota inicial ("tengo 2 millones de inicial",
+  "puedo dar 5 millones de inicial").
+- presupuesto != cuota mensual ("quiero pagar cuotas de 300 mil").
+- presupuesto != precio de la moto, lo informe quien lo informe.
+- Una pregunta sobre precio ("¿con 5 millones me alcanza?", "¿me vale
+  5 millones?") NO es una declaración de presupuesto.
+- Si el cliente declara un rango, usa el valor máximo del rango.
+- En caso de ambigüedad, presupuesto = null. Es preferible null a inventar
+  una restricción presupuestaria que el cliente nunca declaró.
 
 Reglas obligatorias:
 - Responde ÚNICAMENTE con un objeto JSON válido que siga el esquema indicado. Sin texto adicional.
@@ -96,6 +114,10 @@ Notas:
 - Todos los valores y evidencias se refieren al CLIENTE. La evidencia es una cita
   literal de un mensaje del cliente; nunca del asesor.
 - "forma_pago": no la infieras; solo si el cliente la declara.
+- "presupuesto": solo si el cliente declara un límite, tope o rango
+  presupuestario explícito; dinero disponible, inicial, cuota mensual o
+  precio NO son presupuesto. La evidencia debe ser la cita literal donde el
+  cliente expresa ese límite. En duda: null.
 - "solicitud_cita" / "solicitud_cotizacion": true solo si el CLIENTE lo solicita
   explícitamente; false si la conversación deja claro que NO lo solicitó; null si
   no es concluyente. La oferta o pregunta del asesor no cuenta como solicitud.

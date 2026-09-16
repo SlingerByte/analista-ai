@@ -8,7 +8,7 @@ from app.ai.schema import (
     ConversationInput,
 )
 
-EXTRACTION_PROMPT_VERSION = "v4"
+EXTRACTION_PROMPT_VERSION = "v7"
 
 SYSTEM_PROMPT = """\
 Eres un extractor de información estructurada de conversaciones comerciales de WhatsApp
@@ -64,6 +64,73 @@ Cita y visita (regla contextual, no literal):
 - Respuestas de cortesía ("dale", "bueno", "ok", "quedo atento") NO son intención
   de compra ni solicitud de nada por sí solas.
 
+Forma de pago (declaración explícita del cliente):
+- "forma_pago" es la forma de pago que el CLIENTE declara que quiere
+  utilizar. Solo se extrae ante declaración suficientemente explícita.
+- Mapeos explícitos. Dan "contado": "de contado", "la pago de contado",
+  "la quiero de contado", "voy a pagar de contado". Dan "financiacion":
+  "la quiero financiada", "la quiero financiar", "la voy a sacar
+  financiada", "sería financiada", "la voy a comprar a crédito".
+- NO convertir preguntas en forma de pago. Dan null: "¿cómo sería
+  financiada?", "¿se puede financiar?", "¿cómo es el proceso a crédito?",
+  "¿cuánto queda la cuota?".
+- NO inferir contado porque el cliente tenga dinero. Dan null: "tengo 2
+  millones para la inicial", "ya tengo la plata", "tengo 5 millones
+  disponibles", "tengo 1 millón para la inicial".
+- NO usar información únicamente del asesor. Si solo el asesor la menciona
+  ("la puede sacar financiada.") y el cliente no declara forma de pago
+  ("déjeme pensarlo."), el valor es null.
+- La evidencia de "contado" o "financiacion" debe ser la cita breve y
+  literal del CLIENTE que justifique la forma de pago; nunca del asesor.
+
+Objeción (regla semántica, no literal):
+- Una "objecion" es una dificultad, resistencia, limitación, preocupación o
+  condición expresada por el CLIENTE que representa una barrera o fricción
+  para la compra. No toda pregunta, comentario o mención de dinero es una
+  objeción: clasifica por el significado en contexto.
+- Una objeción expresada sigue siendo objeción aunque el cliente después
+  muestre interés, diga que le sirve, acepte una alternativa, siga
+  negociando, confirme una visita o quiera continuar. No uses el último
+  mensaje para ignorar una objeción válida anterior. Ejemplo: "está muy
+  costosa." seguida de "esa sí me sirve, voy esta tarde." da objecion =
+  "precio".
+- Una pregunta informativa NO es objeción por sí misma. Ejemplos que deben
+  quedar en null: "¿cuánto queda la cuota?", "¿cómo sería financiada?",
+  "¿cuánto vale?", "¿cuánto tendría que dar de inicial?", "¿qué modelos
+  tienen?", "¿cuándo entregan?". En cambio sí son objeción: "la cuota me
+  queda muy alta." da "cuota"; "el interés está muy caro." da "cuota";
+  "se me sale del presupuesto." da "cuota" o "precio" según contexto;
+  "no tengo inicial." da "otra"; "la inicial es demasiado alta." da "otra";
+  "está muy costosa." da "precio"; "esa usada está más barata." da "precio".
+- La mera mención de financiación no es objeción. Ejemplos en null:
+  "financiada.", "quiero financiarla.", "¿cómo sería financiada?", "¿qué
+  tasa manejan?". Pero "el interés está muy caro." da "cuota"; "la
+  financiación me queda muy alta." y "no me sirve esa financiación." dan
+  "financiacion". Usa la categoría de la resistencia expresada, no la del
+  tema mencionado.
+- Sin categoría nueva para la inicial: la dificultad explícita con la cuota
+  inicial da "otra". Ejemplos: "no tengo inicial.", "no alcanzo para la
+  inicial.", "la inicial es muy alta.". Pero "¿cuánto es la inicial?",
+  "¿cuánto tengo que dar de inicial?" y "tengo 5 millones para la
+  inicial." (capacidad, no barrera) dan null.
+- Precio o producto con problema expresado da "precio". Ejemplos: "muy
+  costosa.", "está muy cara.", "se me sale por precio.", "la otra está
+  más barata.", "quería algo más económico.". Una comparación puramente
+  informativa, sin resistencia, no es objeción.
+- La evidencia debe ser la cita literal y breve del CLIENTE que represente
+  la barrera o resistencia; nunca del asesor y nunca una paráfrasis. Sin
+  frase del cliente que represente barrera, resistencia o dificultad, el
+  valor es null.
+- Con varias señales: busca primero la objeción explícita y consérvala
+  aunque haya avance posterior; entre varias, la mejor respaldada por
+  evidencia literal y contexto; nunca conviertas preguntas, capacidad
+  económica, intención de financiar o dinero disponible en objeción por sí
+  solos.
+- Restricción: no toda mención de precio da "precio", ni toda mención de
+  cuota da "cuota", ni toda mención de financiación da "financiacion", ni
+  toda mención de inicial da "otra". Exige señal semántica de dificultad,
+  resistencia, limitación, preocupación o barrera.
+
 Presupuesto (regla estricta):
 - "presupuesto" es SOLO una restricción o rango presupuestario declarado
   explícitamente por el cliente: un límite máximo, un tope o un rango de
@@ -107,7 +174,42 @@ Guía de intencion_compra (solo con evidencia del cliente):
   (horarios, ubicación, trámites).
 - null: no hay suficiente evidencia del cliente.
 - No conviertas automáticamente cualquier conversación en intención alta. En caso de
-  duda entre dos niveles, elige el menor o null.
+  duda entre dos niveles, elige el menor o null. Esto NO significa ignorar
+  señales fuertes del cliente: pondera el conjunto de señales y su contexto.
+
+Calibración de intención (considera el conjunto, no palabras aisladas):
+- Financiación, cuota e inicial NO implican por sí solas intención "alta".
+  Ejemplos que no deben convertirse automáticamente en alta: "¿cuánto queda
+  la cuota?", "¿cuánto tengo que dar de inicial?", "¿alcanza para la
+  inicial?", "financiada.", "tengo 500 mil de inicial.". Pueden ser "media"
+  con interés comercial contextual, o "baja"/null aisladas. Una pregunta de
+  cuota aislada no demuestra intención alta; declarar financiación no es
+  decidir comprar; tener una inicial no es haber decidido comprar.
+- Atenuantes explícitos reducen la intensidad: "no tengo con qué dar la
+  inicial", "tengo que hablarlo con mi esposa", "voy a consultarlo con mi
+  familia", "solo estaba mirando", "estoy comparando", "quiero una usada
+  más barata". No los ignores si contradicen un "alta". Sin regla rígida:
+  si el cliente añade una señal fuerte de avance ("no tengo la inicial
+  todavía, pero la quiero y mañana voy a separar la moto"), esa parte puede
+  justificar "alta".
+- Señales fuertes de intención alta (con contexto comercial que las
+  respalde): "esa sí me sirve.", "esa me gusta, esa quiero.", "me quedo
+  con esa.", "hágale.", "sí, esa es la que quiero.", "la voy a comprar.",
+  "quiero llevármela.", "voy a separarla.", "déjemela reservada.". Pero
+  "ok", "dale" o "hágale" aislados, sin contexto comercial suficiente, NO
+  son "alta".
+- Necesidad o urgencia ("la necesito esta semana.", "la necesito ya.",
+  "me hace falta para trabajar.", "la necesito para el trabajo.") son
+  señales relevantes: por sí solas pueden ser "media", no las ignores ni
+  las degrades automáticamente a "baja"; con señal clara de decisión o
+  avance pueden contribuir a "alta".
+- Preguntas informativas (precio, disponibilidad, cuota, financiación,
+  tiempo de entrega, características) no elevan automáticamente la
+  intención. Ejemplo: "¿cuánto cuesta?" no necesariamente es "alta";
+  "¿cuánto cuesta? la necesito esta semana y si está disponible voy mañana
+  por ella." es una señal comercial mucho más fuerte.
+- Una cita o visita es señal fuerte pero no toda visita es "alta":
+  analízala junto con el resto de señales.
 """
 
 

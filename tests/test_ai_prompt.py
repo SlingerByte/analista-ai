@@ -15,7 +15,7 @@ def _conversation() -> ConversationInput:
 
 
 def test_prompt_version_is_defined():
-    assert EXTRACTION_PROMPT_VERSION == "v4"
+    assert EXTRACTION_PROMPT_VERSION == "v7"
 
 
 def test_prompt_has_system_and_user_messages():
@@ -54,6 +54,75 @@ def test_system_prompt_defines_purchase_intent_levels():
     assert '"alta"' in lowered
     assert '"media"' in lowered
     assert '"baja"' in lowered
+
+
+def test_system_prompt_calibrates_financing_signals():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    for phrase in ("¿cuánto queda la cuota?", "¿alcanza para la inicial?",
+                   "financiada.", "tengo 500 mil de inicial."):
+        assert phrase in flat, phrase
+    assert "no implican por sí solas" in flat
+
+
+def test_system_prompt_weights_dampeners():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    for phrase in ("no tengo con qué dar la inicial",
+                   "tengo que hablarlo con mi esposa",
+                   "solo estaba mirando", "estoy comparando",
+                   "quiero una usada más barata"):
+        assert phrase in flat, phrase
+
+
+def test_system_prompt_recognizes_strong_buying_signals():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    for phrase in ("esa sí me sirve.", "sí, esa es la que quiero.",
+                   "voy a separarla.", "la necesito esta semana",
+                   "la necesito ya"):
+        assert phrase in flat, phrase
+
+
+def test_system_prompt_does_not_auto_high_courtesy_replies():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    assert '"hágale" aislados' in flat
+
+
+def _flat_prompt() -> str:
+    import re
+    return re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+
+
+def test_objecion_positive_examples():
+    flat = _flat_prompt()
+    for phrase in ("muy costosa.", "está muy cara", "la cuota me queda muy alta",
+                   "el interés está muy caro", "no tengo inicial",
+                   "la inicial es muy alta", "no me sirve esa financiación"):
+        assert phrase in flat, phrase
+
+
+def test_objecion_questions_stay_null():
+    flat = _flat_prompt()
+    for phrase in ("¿cuánto queda la cuota?", "¿cómo sería financiada?",
+                   "¿cuánto vale?", "¿cuánto es la inicial?",
+                   "financiada.", "quiero financiarla."):
+        assert phrase in flat, phrase
+    assert "pregunta informativa no es objeción" in flat
+
+
+def test_objecion_survives_later_advance():
+    flat = _flat_prompt()
+    assert "sigue siendo objeción aunque el cliente después" in flat
+    assert "esa sí me sirve, voy esta tarde" in flat
+    assert "no uses el último mensaje" in flat
+
+
+def test_objecion_requires_semantic_barrier():
+    flat = _flat_prompt()
+    assert "barrera o fricción" in flat
+    assert "no toda mención de precio da" in flat
 
 
 def test_system_prompt_forbids_boolean_objecion():

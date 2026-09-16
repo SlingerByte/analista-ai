@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local AI Connection Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+    #status { padding: .6rem 1rem; border-radius: .5rem; background: #f1f5f9; margin: 1rem 0; }
+    #status.ok { background: #dcfce7; }
+    #status.fail { background: #fee2e2; }
+    #answer { white-space: pre-wrap; background: #f8fafc; border: 1px solid #cbd5e1;
+              border-radius: .5rem; padding: 1rem; min-height: 4rem; }
+    button { padding: .5rem 1rem; margin-right: .5rem; }
+  </style>
+</head>
+<body>
+  <h1>Local AI Connection Test</h1>
+  <button id="detect">Detectar agente local</button>
+  <button id="analyze" disabled>Probar análisis</button>
+  <div id="status">Estado: sin comprobar</div>
+  <h2>Respuesta</h2>
+  <div id="answer">—</div>
+  <script>
+    const BASE = "http://127.0.0.1:8765";
+    const statusEl = document.getElementById("status");
+    const answerEl = document.getElementById("answer");
+    const analyzeBtn = document.getElementById("analyze");
+
+    function setStatus(text, cls) {
+      statusEl.textContent = "Estado: " + text;
+      statusEl.className = cls || "";
+    }
+
+    async function detect() {
+      setStatus("detectando agente…");
+      try {
+        const t0 = performance.now();
+        const res = await fetch(BASE + "/health");
+        const data = await res.json();
+        const ms = Math.round(performance.now() - t0);
+        if (data.status === "ok") {
+          setStatus(`Agente encontrado · Ollama disponible: ${data.ollama} · Modelo: ${data.model} (${ms} ms)`, "ok");
+          analyzeBtn.disabled = false;
+        } else {
+          setStatus("Agente local no disponible", "fail");
+        }
+      } catch (err) {
+        setStatus("Agente local no disponible (" + err + ")", "fail");
+      }
+    }
+
+    async function analyze() {
+      answerEl.textContent = "Analizando…";
+      const t0 = performance.now();
+      try {
+        const res = await fetch(BASE + "/analyze", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({text: "De contado, la pago de contado."}),
+        });
+        const data = await res.json();
+        const ms = Math.round(performance.now() - t0);
+        answerEl.textContent = `ok=${data.ok} · modelo=${data.model} · ${ms} ms\n\n` +
+          (data.result || data.error || "(vacío)");
+      } catch (err) {
+        answerEl.textContent = "Error: " + err;
+      }
+    }
+
+    document.getElementById("detect").addEventListener("click", detect);
+    analyzeBtn.addEventListener("click", analyze);
+    detect();
+  </script>
+</body>
+</html>

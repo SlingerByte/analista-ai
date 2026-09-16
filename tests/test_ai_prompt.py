@@ -15,7 +15,7 @@ def _conversation() -> ConversationInput:
 
 
 def test_prompt_version_is_defined():
-    assert EXTRACTION_PROMPT_VERSION == "v3"
+    assert EXTRACTION_PROMPT_VERSION == "v4"
 
 
 def test_prompt_has_system_and_user_messages():
@@ -60,6 +60,25 @@ def test_system_prompt_forbids_boolean_objecion():
     lowered = SYSTEM_PROMPT.lower()
     assert "objecion" in lowered
     assert "boolean" in lowered
+
+
+def test_system_prompt_defines_cita_visit_rule():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    for phrase in ("¿puedo pasar mañana?", "¿a qué hora los puedo visitar?",
+                   "voy esta tarde para allá", "voy saliendo",
+                   "ya voy en camino", "me paso más tarde",
+                   "sí, sepáremela", "sí por favor, voy saliendo"):
+        assert phrase in flat, phrase
+
+
+def test_system_prompt_rejects_non_visit_voy_phrases():
+    import re
+    flat = re.sub(r"\s+", " ", SYSTEM_PROMPT).lower()
+    for phrase in ("voy a consultar en la casa", "voy a hablarlo con mi esposo",
+                   "voy a mirar otras opciones", "voy a pensarlo",
+                   "¿hasta qué hora abren?", "¿le separo la moto?"):
+        assert phrase in flat, phrase
 
 
 def test_system_prompt_defines_presupuesto_as_explicit_limit():

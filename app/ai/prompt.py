@@ -8,7 +8,7 @@ from app.ai.schema import (
     ConversationInput,
 )
 
-EXTRACTION_PROMPT_VERSION = "v3"
+EXTRACTION_PROMPT_VERSION = "v4"
 
 SYSTEM_PROMPT = """\
 Eres un extractor de información estructurada de conversaciones comerciales de WhatsApp
@@ -34,9 +34,33 @@ No invención (prohibido inferir):
 - Que el asesor OFREZCA una cotización ("te envío la cotización") NO significa que
   el cliente la solicitó. solicitud_cotizacion = true solo si el cliente la pide
   explícitamente ("mándeme la cotización", "me la puede cotizar").
-- Que el asesor PREGUNTE si quiere agendar ("¿quiere agendar una cita?") NO significa
-  que el cliente la solicitó. solicitud_cita = true solo si el cliente pide
-  explícitamente ir/agendar/visitar.
+- Que el asesor PREGUNTE si quiere agendar ("¿quiere agendar una cita?") o si
+  le separa la moto ("¿le separo la moto?") NO significa que el cliente la
+  solicitó. Si el cliente no acepta ni expresa intención de visitar, no
+  marcar true.
+
+Cita y visita (regla contextual, no literal):
+- "solicitud_cita" = true cuando el cliente:
+  1. pide explícitamente una cita, visita, reserva o paso por el punto
+     de venta. Ejemplos: "¿puedo pasar mañana?", "¿a qué hora los puedo
+     visitar?", "quiero ir esta tarde"; o
+  2. expresa de forma explícita que va o está yendo al punto de venta y
+     el contexto confirma la visita comercial. Ejemplos: "voy esta tarde
+     para allá", "voy saliendo", "ya voy en camino", "me paso más tarde"; o
+  3. acepta explícitamente una reserva o visita propuesta por el asesor,
+     con iniciativa de la visita respaldada por el cliente. Ejemplos:
+     "sí, sepáremela", "sí por favor, voy saliendo".
+- NO convertir automáticamente cualquier frase con "voy", "ir" o "pasar"
+  en true. No es visita al punto de venta. Ejemplos: "voy a consultar en
+  la casa", "voy a hablarlo con mi esposo", "voy a mirar otras opciones",
+  "voy a revisar mis documentos", "voy a pensarlo",
+  "voy a preguntarle a mi papá".
+- Una pregunta puramente informativa de horario o ubicación aislada no
+  necesariamente implica cita. Ejemplos: "¿hasta qué hora abren?".
+  Acompañada de "voy esta tarde", sí.
+- La evidencia debe ser la cita literal del CLIENTE que respalde la
+  decisión. Ejemplo: "sí por favor, voy saliendo". Nunca un mensaje del
+  asesor. Ejemplo prohibido: "¿le separo la moto?".
 - Respuestas de cortesía ("dale", "bueno", "ok", "quedo atento") NO son intención
   de compra ni solicitud de nada por sí solas.
 
@@ -118,9 +142,13 @@ Notas:
   presupuestario explícito; dinero disponible, inicial, cuota mensual o
   precio NO son presupuesto. La evidencia debe ser la cita literal donde el
   cliente expresa ese límite. En duda: null.
-- "solicitud_cita" / "solicitud_cotizacion": true solo si el CLIENTE lo solicita
-  explícitamente; false si la conversación deja claro que NO lo solicitó; null si
-  no es concluyente. La oferta o pregunta del asesor no cuenta como solicitud.
+- "solicitud_cita": true si el cliente la pide explícitamente, anuncia que va
+  al punto de venta o acepta una reserva con iniciativa propia (ver regla
+  contextual arriba); false si deja claro que NO la solicitó; null si no es
+  concluyente. La oferta o pregunta del asesor no cuenta como solicitud.
+- "solicitud_cotizacion": true solo si el CLIENTE la solicita explícitamente;
+  false si deja claro que NO la solicitó; null si no es concluyente. La oferta
+  o pregunta del asesor no cuenta como solicitud.
 - "objecion": string corto de la lista permitida o null; nunca boolean.
 - "cuota_inicial": solo el monto inicial declarado por el cliente; una cuota mensual
   del asesor no es cuota inicial.

@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     groq_model: str | None = "openai/gpt-oss-20b"
     groq_base_url: str = "https://api.groq.com/openai/v1"
+    local_ai_agent_url: str = "http://127.0.0.1:8765"
+    local_ai_model: str | None = "qwen2.5:3b"
 
 
 @lru_cache

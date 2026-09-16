@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from app.ai.base import AIExtractor
 from app.ai.groq import GroqExtractor
+from app.ai.local import LocalExtractor
 from app.ai.ollama import OllamaExtractor
 from app.ai.openrouter import OpenRouterExtractor
 from app.config import Settings, get_settings, is_production
 
 # Proveedores admitidos por la factory. Producción solo acepta proveedores
-# remotos: un Ollama local no es una configuración válida de despliegue.
-KNOWN_PROVIDERS = frozenset({"ollama", "openrouter", "groq"})
+# remotos: un Ollama local (o el agente local en loopback) no es una
+# configuración válida de despliegue.
+KNOWN_PROVIDERS = frozenset({"ollama", "openrouter", "groq", "local"})
 PRODUCTION_PROVIDERS = frozenset({"openrouter", "groq"})
 
 
@@ -101,6 +103,12 @@ def build_extractor(
             api_key=settings.groq_api_key,
             model=settings.groq_model,
             base_url=settings.groq_base_url,
+            timeout=settings.ai_timeout_seconds,
+        )
+    if resolved == "local":
+        return LocalExtractor(
+            base_url=settings.local_ai_agent_url,
+            model=settings.local_ai_model,
             timeout=settings.ai_timeout_seconds,
         )
     raise UnknownProviderError(f"unknown AI_PROVIDER: {resolved!r}")

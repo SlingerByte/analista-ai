@@ -705,3 +705,9 @@ El módulo de IA está implementado y se probó durante el desarrollo (gold set,
 auditoría de calidad y pruebas con proveedor remoto). Su calidad depende del
 modelo utilizado, y las extracciones visibles en la instancia pública son una
 muestra pequeña, no el total de lo probado.
+
+## Autoría
+
+Desarrollado originalmente por **Emilson Oviedo Cardona** para una evaluación
+técnica de Analista IA (septiembre de 2026). Repositorio original:
+https://github.com/SlingerByte/analista-ai. Ver `AUTHORS.md`.

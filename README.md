@@ -81,6 +81,17 @@ existe una llave fiable para hacer *join*, y no entra en el scoring.
   gratuitos pueden devolver `HTTP 429` (rate limit). El sistema lo registra
   como error de extracción (no bloquea ni duplica la conversación) y el
   reintento es idempotente.
+- **IA local en el navegador (opcional).** Si el usuario tiene Ollama corriendo
+  en su equipo, `/supervision` lo detecta **desde el navegador**
+  (`http://127.0.0.1:11434`) y permite ejecutar la extracción sin enviar la
+  conversación a un proveedor remoto. El backend **no** contacta a Ollama: el
+  navegador llama a Ollama con el mismo prompt V8/schema v1 (que el backend
+  entrega) y envía el resultado de vuelta, donde se valida y persiste con la
+  lógica existente (evidencia, `input_hash`, `is_current`, scoring).
+  Requiere que **Ollama en el equipo del usuario** acepte el origen de la
+  página: `OLLAMA_ORIGINS=https://<tu-dominio>` (o el origen local en desarrollo),
+  reiniciando Ollama tras configurarla. Esta configuración es del cliente, no
+  del servidor.
 
 ## Scoring
 

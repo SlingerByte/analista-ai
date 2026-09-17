@@ -8,20 +8,29 @@ identidad. Rutas de negocio requieren login; /login y /health son públicas.
 from __future__ import annotations
 
 import math
-import re
 import time
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.ai.browser import BrowserOllamaReplay, parse_browser_result
 from app.ai.factory import PRODUCTION_PROVIDERS, build_extractor
-from app.ai.service import get_current_extraction, process_pending
+from app.ai.prompt import EXTRACTION_PROMPT_VERSION, build_messages
+from app.ai.schema import SCHEMA_VERSION, ExtractionResult
+from app.ai.service import (
+    STATUS_SUCCESS,
+    conversation_to_input,
+    get_current_extraction,
+    process_conversation,
+    process_pending,
+)
 from app.assignment.service import STATUS_ASSIGNED, STATUS_OVERFLOW, retry_assignment
 from app.auth import ROLE_ADVISOR, ROLE_ADMIN, ROLE_SUPERVISOR, require_login
 from app.config import get_settings, is_production
@@ -174,27 +183,39 @@ def _configured_ai_providers(settings) -> list[dict]:
     return providers
 
 
-def _safe_error_summary(items) -> str:
-    """Motivo resumido y seguro para la UI (sin secretos ni stack traces).
+def _humanize_ai_error(text: str) -> str:
+    """Traduce un error técnico a un mensaje de negocio, sin filtrar detalles."""
+    token = (text or "").lower()
+    if "429" in token or ("rate" in token and "limit" in token) or "too many requests" in token:
+        return ("El proveedor de IA está temporalmente limitado. Intenta nuevamente "
+                "en unos minutos o selecciona otro proveedor.")
+    if ("401" in token or "403" in token or "unauthorized" in token
+            or "forbidden" in token):
+        return "El proveedor de IA no está correctamente configurado."
+    if "timeout" in token or "timed out" in token:
+        return "El proveedor de IA tardó demasiado en responder."
+    if ("network" in token or "urlerror" in token or "connection" in token
+            or "unreachable" in token or "failed to fetch" in token
+            or "refused" in token):
+        return "No fue posible conectar con el proveedor de IA."
+    if ("schema" in token or "invalid json" in token or "no choices" in token
+            or "could not parse" in token or "validation" in token):
+        return "El proveedor de IA no pudo procesar esta conversación."
+    return "No fue posible completar el análisis."
 
-    El detalle técnico completo permanece en BD/logs; aquí solo se expone un
-    texto corto, sin credenciales ni saltos de línea.
+
+def _safe_error_summary(items) -> str:
+    """Motivo humano y seguro para la UI.
+
+    Nunca expone el JSON del proveedor, URLs internas, claves, tokens ni stack
+    traces; el detalle técnico completo permanece en BD/logs.
     """
-    texts: list[str] = []
     for item in items or []:
         value = item.get("error") if isinstance(item, dict) else item
         text = str(value or "").strip()
         if text:
-            texts.append(text)
-        if len(texts) >= 3:
-            break
-    if not texts:
-        return ""
-    summary = re.sub(r"\s+", " ", " | ".join(texts)).strip()
-    summary = re.sub(r"(?i)bearer\s+[A-Za-z0-9._\-]+", "Bearer ***", summary)
-    summary = re.sub(r"(?i)(api[_-]?key|token|secret)\s*[:=]\s*\S+", r"\1=***", summary)
-    summary = re.sub(r"sk-[A-Za-z0-9._\-]{6,}", "sk-***", summary)
-    return summary[:240]
+            return _humanize_ai_error(text)
+    return ""
 
 
 def _validate_ai_limit(raw: str | None) -> int | None:
@@ -1272,6 +1293,107 @@ def run_ai_analysis(
         "ai_ids": ",".join(processed_ids),
     }
     return RedirectResponse(url=f"{base}?{urlencode(params)}", status_code=303)
+
+
+@router.post("/supervision/ai-local-context")
+def ai_local_context(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    limit: int = Form(default=10),
+    empresa: str = Form(default=None),
+):
+    """Contexto para ejecutar Ollama en el navegador del usuario.
+
+    Devuelve, para conversaciones pendientes del alcance, los mensajes exactos
+    (prompt V8 + schema v1) que el navegador debe enviar a ``127.0.0.1:11434``.
+    El backend no contacta a Ollama ni expone credenciales.
+    """
+    if isinstance(user, RedirectResponse):
+        return JSONResponse({"error": "no autenticado"}, status_code=401)
+    if user.role not in (ROLE_SUPERVISOR, ROLE_ADMIN):
+        raise HTTPException(status_code=403, detail="Rol no autorizado")
+    scope = _supervision_scope(session, user, user.role == ROLE_ADMIN, empresa, None)
+    pending = _ai_pending_conversation_ids(session, scope.company_ids)
+    selected = pending[: max(1, min(int(limit or 1), MAX_AI_LIMIT))]
+    conversations = []
+    for conversation_id in selected:
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            continue
+        conversations.append({
+            "conversation_id": conversation_id,
+            "messages": build_messages(conversation_to_input(conversation)),
+        })
+    return JSONResponse({
+        "provider": "ollama",
+        "prompt_version": EXTRACTION_PROMPT_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "schema": ExtractionResult.model_json_schema(),
+        "conversations": conversations,
+    })
+
+
+@router.post("/supervision/ai-local-result")
+def ai_local_result(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    payload: dict = Body(...),
+):
+    """Persiste el resultado estructurado que produjo Ollama en el navegador.
+
+    Reutiliza ``process_conversation`` (validación de evidencia, idempotencia
+    por ``input_hash``, ``is_current``) y el rescoring existente. El resultado
+    se valida con el schema v1; el backend no contacta a ningún proveedor.
+    """
+    if isinstance(user, RedirectResponse):
+        return JSONResponse({"ok": False, "message": "No autenticado"}, status_code=401)
+    if user.role not in (ROLE_SUPERVISOR, ROLE_ADMIN):
+        raise HTTPException(status_code=403, detail="Rol no autorizado")
+
+    conversation_id = str(payload.get("conversation_id") or "").strip()
+    model = payload.get("model")
+    raw_result = payload.get("result")
+    conversation = session.get(Conversation, conversation_id) if conversation_id else None
+    if conversation is None or not _conversation_in_scope(session, user, conversation):
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+
+    try:
+        parsed = parse_browser_result(raw_result)
+    except ValidationError:
+        return JSONResponse({
+            "ok": False, "conversation_id": conversation_id, "status": "error",
+            "message": "El proveedor de IA no pudo procesar esta conversación.",
+        })
+
+    replay = BrowserOllamaReplay(model, parsed)
+    try:
+        result = process_conversation(session, conversation_id, replay)
+    except Exception:  # noqa: BLE001 - nunca exponer el detalle técnico
+        session.rollback()
+        return JSONResponse({
+            "ok": False, "conversation_id": conversation_id, "status": "error",
+            "message": "No fue posible completar el análisis.",
+        })
+
+    status = result.extraction.status
+    rescored = False
+    if status == STATUS_SUCCESS and conversation.lead_id:
+        try:
+            score_and_persist_lead(session, conversation.lead_id)
+            rescored = True
+        except Exception:  # noqa: BLE001
+            session.rollback()
+    return JSONResponse({
+        "ok": status == STATUS_SUCCESS,
+        "conversation_id": conversation_id,
+        "status": status,
+        "message": ("Análisis completado." if status == STATUS_SUCCESS
+                    else "El proveedor de IA no pudo procesar esta conversación."),
+        "model": model,
+        "rescored": rescored,
+    })
 
 
 @router.get("/ai/conversations", response_class=HTMLResponse)

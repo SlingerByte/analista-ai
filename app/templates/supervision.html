@@ -70,11 +70,10 @@
           Se procesan como máximo las seleccionadas; el resto queda pendiente.
           Pendientes: <strong>{{ ai.pending }}</strong>.
         </p>
-        <form method="post" action="/supervision/run-ai" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:end;"
-              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Analizando…';">
+        <form id="ai-form" method="post" action="/supervision/run-ai" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
           {% if is_admin %}<input type="hidden" name="empresa" value="{{ filters.empresa }}" />{% endif %}
           <label style="font-size:0.8rem;color:#475569;display:grid;gap:0.25rem;">Proveedor de IA
-            <select name="provider">
+            <select name="provider" id="ai-provider">
               {% for option in ai.providers %}
               <option value="{{ option.value }}">{{ option.label }}</option>
               {% endfor %}
@@ -84,8 +83,12 @@
             <input type="number" name="limit" min="1" max="{{ ai.max_limit }}"
                    value="{{ ai.limit_default }}" style="width:6rem;" />
           </label>
-          <button type="submit" {% if ai.pending == 0 %}disabled{% endif %}>Analizar con IA</button>
+          <button type="submit" id="ai-submit" {% if ai.pending == 0 %}disabled{% endif %}>Analizar con IA</button>
         </form>
+        <p id="ollama-status" style="font-size:0.85rem;color:#475569;margin:0.6rem 0 0;">
+          ⚪ Ollama local no disponible
+        </p>
+        <div id="ai-local-msg" style="display:none;margin-top:0.6rem;border-radius:0.5rem;padding:0.6rem 1rem;"></div>
         {% if ai_result %}
           {% if ai_result.empty %}
           <p style="background:#fef3c7;border:1px solid #fcd34d;border-radius:0.5rem;padding:0.6rem 1rem;color:#92400e;margin-bottom:0;">
@@ -96,16 +99,18 @@
             <strong>{{ ai_result.reason }}</strong>{% if ai_result.provider %} <span style="opacity:.8;">(proveedor: {{ ai_result.provider }})</span>{% endif %}
           </p>
           {% else %}
+          {% set failed_total = (ai_result.errors | int) + (ai_result.failed | int) %}
           <div style="background:#dcfce7;border:1px solid #86efac;border-radius:0.5rem;padding:0.6rem 1rem;color:#166534;margin-bottom:0;">
             Análisis completado
             <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
-              <li><strong>{{ ai_result.processed | int }}</strong> procesadas ({{ ai_result.candidates | int }} seleccionadas con límite {{ ai_result.limit | int }})</li>
-              <li><strong>{{ ai_result.success | int }}</strong> exitosas</li>
-              <li><strong>{{ ai_result.errors | int }}</strong> con error de extracción · <strong>{{ ai_result.failed | int }}</strong> fallidas (excepción) · <strong>{{ ai_result.reused | int }}</strong> reutilizadas</li>
+              <li><strong>{{ ai_result.processed | int }}</strong> {% if (ai_result.processed | int) == 1 %}conversación procesada{% else %}conversaciones procesadas{% endif %}</li>
+              <li><strong>{{ ai_result.success | int }}</strong> {% if (ai_result.success | int) == 1 %}análisis completado{% else %}análisis completados{% endif %}</li>
+              <li><strong>{{ failed_total }}</strong> {% if failed_total == 1 %}no pudo analizarse{% else %}no pudieron analizarse{% endif %}</li>
+              {% if ai_result.reused %}<li><strong>{{ ai_result.reused | int }}</strong> ya estaban analizadas (reutilizadas)</li>{% endif %}
               {% if ai_result.failure_reason %}
               <li style="color:#991b1b;">Motivo: {{ ai_result.failure_reason | e }}</li>
               {% endif %}
-              <li><strong>{{ ai_result.rescored | int }}</strong> leads con score actualizado{% if ai_result.rescore_errors %} · <strong>{{ ai_result.rescore_errors | int }}</strong> con error de score{% endif %}</li>
+              <li><strong>{{ ai_result.rescored | int }}</strong> {% if (ai_result.rescored | int) == 1 %}lead con score actualizado{% else %}leads con score actualizado{% endif %}{% if ai_result.rescore_errors %} · {{ ai_result.rescore_errors | int }} con error de score{% endif %}</li>
               <li>Proveedor: {{ ai_result.provider }} · Modelo: {{ ai_result.model }}</li>
               <li>Tiempo: {{ ai_result.seconds }} s</li>
             </ul>
@@ -170,5 +175,184 @@
       {% endif %}
       </section>
     </main>
+    <script>
+      (function () {
+        "use strict";
+        var OLLAMA_URL = "http://127.0.0.1:11434";
+        var LOCAL_VALUE = "__ollama_local__";
+        var FRIENDLY = {
+          offline: "No fue posible conectar con Ollama en tu equipo. Verifica que esté en ejecución.",
+          timeout: "Ollama tardó demasiado en responder.",
+          rate: "El proveedor está temporalmente limitado. Intenta nuevamente en unos minutos.",
+          config: "Ollama no está correctamente configurado.",
+          model: "El modelo local no pudo procesar esta conversación.",
+          server: "No fue posible completar el análisis."
+        };
+        var form = document.getElementById("ai-form");
+        var select = document.getElementById("ai-provider");
+        var button = document.getElementById("ai-submit");
+        var status = document.getElementById("ollama-status");
+        var box = document.getElementById("ai-local-msg");
+        if (!form || !select || !button || !status || !box) { return; }
+
+        var localModel = null;
+
+        function setBox(ok, text) {
+          box.style.display = "block";
+          box.textContent = text;
+          box.style.background = ok ? "#dcfce7" : "#fee2e2";
+          box.style.border = "1px solid " + (ok ? "#86efac" : "#fca5a5");
+          box.style.color = ok ? "#166534" : "#991b1b";
+        }
+
+        function addOption(value, label, disabled) {
+          var opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = label;
+          if (disabled) { opt.disabled = true; }
+          select.insertBefore(opt, select.firstChild);
+          return opt;
+        }
+
+        function pickModel(models) {
+          for (var i = 0; i < models.length; i++) {
+            if (models[i].indexOf("qwen2.5:3b") === 0) { return models[i]; }
+          }
+          return models.length ? models[0] : null;
+        }
+
+        function callOllama(model, messages, schema) {
+          var controller = new AbortController();
+          var timer = setTimeout(function () { controller.abort(); }, 120000);
+          return fetch(OLLAMA_URL + "/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: model, messages: messages, stream: false,
+                                   format: schema, options: { temperature: 0 } }),
+            signal: controller.signal
+          }).then(function (resp) {
+            clearTimeout(timer);
+            if (!resp.ok) {
+              if (resp.status === 429) { throw { kind: "rate" }; }
+              if (resp.status === 401 || resp.status === 403) { throw { kind: "config" }; }
+              throw { kind: "model" };
+            }
+            return resp.json();
+          }).then(function (data) {
+            var content = (data && data.message && data.message.content) || "";
+            try { return JSON.parse(content); } catch (e) { throw { kind: "model" }; }
+          }).catch(function (err) {
+            clearTimeout(timer);
+            if (err && err.kind) { throw err; }
+            if (err && err.name === "AbortError") { throw { kind: "timeout" }; }
+            throw { kind: "offline" };
+          });
+        }
+
+        function postFormTo(url, data) {
+          var body = new URLSearchParams();
+          Object.keys(data).forEach(function (key) {
+            if (data[key] !== "" && data[key] !== null && data[key] !== undefined) {
+              body.append(key, data[key]);
+            }
+          });
+          return fetch(url, { method: "POST", headers: { "Accept": "application/json" }, body: body });
+        }
+
+        function runBrowserOllama(model, limit, empresa) {
+          return postFormTo("/supervision/ai-local-context", { limit: limit, empresa: empresa })
+            .then(function (resp) {
+              if (!resp.ok) { throw { kind: "server" }; }
+              return resp.json();
+            })
+            .then(function (ctx) {
+              var conversations = (ctx && ctx.conversations) || [];
+              var schema = ctx && ctx.schema;
+              var results = { ok: 0, failed: 0, message: "" };
+              var chain = Promise.resolve();
+              conversations.forEach(function (conv) {
+                chain = chain.then(function () {
+                  return callOllama(model, conv.messages, schema)
+                    .then(function (parsed) {
+                      return fetch("/supervision/ai-local-result", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ conversation_id: conv.conversation_id,
+                                               model: model, result: parsed })
+                      });
+                    })
+                    .then(function (resp) { return resp.json(); })
+                    .then(function (out) {
+                      if (out && out.ok) { results.ok += 1; }
+                      else {
+                        results.failed += 1;
+                        if (out && out.message) { results.message = out.message; }
+                      }
+                    });
+                });
+              });
+              return chain.then(function () { return results; });
+            });
+        }
+
+        function detectOllama() {
+          var controller = new AbortController();
+          var timer = setTimeout(function () { controller.abort(); }, 1500);
+          return fetch(OLLAMA_URL + "/api/tags", { cache: "no-store", signal: controller.signal })
+            .then(function (resp) {
+              clearTimeout(timer);
+              if (!resp.ok) { throw new Error("http"); }
+              return resp.json();
+            })
+            .then(function (data) {
+              return ((data && data.models) || [])
+                .map(function (m) { return m && m.name; })
+                .filter(Boolean);
+            })
+            .catch(function () { clearTimeout(timer); return null; });
+        }
+
+        detectOllama().then(function (models) {
+          localModel = models ? pickModel(models) : null;
+          if (localModel) {
+            addOption(LOCAL_VALUE, "🖥️ Ollama local — " + localModel, false);
+            status.textContent = "🟢 Ollama local disponible — " + localModel;
+          } else {
+            addOption(LOCAL_VALUE, "🖥️ Ollama local — No disponible", true);
+            status.textContent = "⚪ Ollama local no disponible";
+          }
+        }).catch(function () {
+          status.textContent = "⚪ Ollama local no disponible";
+        });
+
+        form.addEventListener("submit", function (event) {
+          button.disabled = true;
+          button.textContent = "Analizando…";
+          if (select.value !== LOCAL_VALUE) { return; }  // proveedor remoto: submit normal
+          event.preventDefault();
+          if (!localModel) { button.disabled = false; button.textContent = "Analizar con IA"; return; }
+          var limitInput = form.querySelector("input[name=limit]");
+          var empresaInput = form.querySelector("input[name=empresa]");
+          runBrowserOllama(localModel, limitInput ? limitInput.value : "10",
+                           empresaInput ? empresaInput.value : "")
+            .then(function (result) {
+              var text = result.ok + " análisis completado(s)";
+              if (result.failed) {
+                text += " · " + result.failed + " no pudo(ieron) analizarse. " +
+                        (result.message || "");
+              }
+              setBox(result.failed === 0, text);
+              button.disabled = false;
+              button.textContent = "Analizar con IA";
+              setTimeout(function () { window.location.reload(); }, 1500);
+            })
+            .catch(function (err) {
+              setBox(false, FRIENDLY[(err && err.kind) || "server"] || FRIENDLY.server);
+              button.disabled = false;
+              button.textContent = "Analizar con IA";
+            });
+        });
+      })();
+    </script>
   </body>
 </html>

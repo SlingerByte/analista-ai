@@ -11,7 +11,12 @@ import app.models  # noqa: F401
 from app.auth import get_session as auth_get_session
 from app.auth import hash_password
 from app.config import Settings
-from app.dashboard import _configured_ai_providers, _safe_error_summary, get_session
+from app.dashboard import (
+    _configured_ai_providers,
+    _humanize_ai_error,
+    _safe_error_summary,
+    get_session,
+)
 from app.db import Base
 from app.main import app
 from app.models import Advisor, Company, PointOfSale, User
@@ -77,16 +82,44 @@ def test_ausencia_de_groq_no_rompe_openrouter():
 # --- Seguridad del resumen de errores ----------------------------------------
 
 
-def test_safe_error_summary_redacta_secretos_y_colapsa():
+def test_humanize_429_es_mensaje_de_negocio():
     summary = _safe_error_summary([
-        {"error": "HTTP 429: rate limit Bearer sk-abc123XYZ api_key=supersecreto\n"
-                  "stack trace: File \"/x.py\" y mas"},
+        {"error": 'HTTP 429: {"error":{"message":"Provider returned error",'
+                  '"metadata":{"raw":"temporarily rate-limited upstream"}}}'},
     ])
-    assert "429" in summary
-    assert "sk-abc123XYZ" not in summary
-    assert "supersecreto" not in summary
-    assert "\n" not in summary
-    assert "Bearer ***" in summary
+    assert "temporalmente limitado" in summary
+    assert "{" not in summary
+    assert "429" not in summary
+    assert "rate-limited" not in summary
+
+
+def test_humanize_401_403_configuracion():
+    assert "configurado" in _humanize_ai_error("HTTP 401 Unauthorized")
+    assert "configurado" in _humanize_ai_error("HTTP 403 Forbidden")
+
+
+def test_humanize_timeout():
+    assert "tardó" in _humanize_ai_error("network error: TimeoutError")
+
+
+def test_humanize_conexion():
+    assert "conectar" in _humanize_ai_error("network error: URLError")
+
+
+def test_humanize_respuesta_modelo():
+    assert "procesar" in _humanize_ai_error("invalid JSON: Expecting value")
+
+
+def test_humanize_desconocido():
+    assert _humanize_ai_error("algo raro") == "No fue posible completar el análisis."
+
+
+def test_safe_error_summary_nunca_filtra_detalles():
+    summary = _safe_error_summary([
+        {"error": "HTTP 429 Bearer sk-abcXYZ api_key=supersecreto https://internal/x"},
+    ])
+    for forbidden in ("sk-abcXYZ", "supersecreto", "https://", "{", "Bearer"):
+        assert forbidden not in summary
 
 
 # --- Endpoint: producción rechaza 'local' enviado manualmente -----------------

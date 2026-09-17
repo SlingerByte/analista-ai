@@ -8,9 +8,10 @@ identidad. Rutas de negocio requieren login; /login y /health son públicas.
 from __future__ import annotations
 
 import math
+import time
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
@@ -18,18 +19,39 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.ai.service import get_current_extraction
+from app.ai.factory import build_extractor
+from app.ai.service import get_current_extraction, process_pending
 from app.assignment.service import STATUS_ASSIGNED, STATUS_OVERFLOW, retry_assignment
 from app.auth import ROLE_ADVISOR, ROLE_ADMIN, ROLE_SUPERVISOR, require_login
 from app.config import get_settings
 from app.db import get_session
-from app.models import Advisor, Assignment, CatalogItem, Company, Conversation, Lead, LeadScore, User
+from app.ingestion.catalog import build_catalog_index, match_model
+from app.lead_status import (
+    CLOSE_REASONS,
+    OPEN_STATUSES,
+    TERMINAL_STATUSES,
+    LeadTransitionError,
+    is_lead_terminal,
+    update_lead_status,
+)
+from app.models import (
+    Advisor,
+    AIExtraction,
+    Assignment,
+    CatalogItem,
+    Company,
+    Conversation,
+    Lead,
+    LeadScore,
+    User,
+)
 from app.presentation import (
     dimension_label,
     score_reason_label,
     sender_class,
     sender_label,
 )
+from app.scoring.service import score_and_persist_lead
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -128,6 +150,289 @@ def _build_row(assignment: Assignment, lead: Lead, score: LeadScore | None,
 # --- Supervisión: batch-load + paginación (perf, sin cambio de alcance) --------
 
 PAGE_SIZE = 50
+
+# Análisis IA desde la web: límites permitidos y tope duro server-side.
+AI_LIMIT_OPTIONS = (1, 10, 20)
+MAX_AI_LIMIT = 20
+
+
+def _configured_ai_providers(settings) -> list[dict]:
+    """Proveedores seleccionables. El remoto solo si está configurado."""
+    providers = [{"value": "local", "label": "IA local (agente + Ollama)"}]
+    if settings.groq_api_key and settings.groq_model:
+        providers.append({"value": "groq", "label": "Groq (remoto)"})
+    if settings.openrouter_api_key and settings.openrouter_model:
+        providers.append({"value": "openrouter", "label": "OpenRouter (remoto)"})
+    return providers
+
+
+def _validate_ai_limit(raw: str | None) -> int | None:
+    """Límite server-side: entero >= 1, acotado a MAX_AI_LIMIT. None si inválido."""
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    if value < 1:
+        return None
+    return min(value, MAX_AI_LIMIT)
+
+
+def _parse_ai_ids(raw: str | None) -> list[str]:
+    """Ids de conversaciones de la última ejecución (acotado a MAX_AI_LIMIT)."""
+    if not raw:
+        return []
+    seen: list[str] = []
+    for token in raw.split(","):
+        value = token.strip()
+        if value and value not in seen:
+            seen.append(value)
+    return seen[:MAX_AI_LIMIT]
+
+
+# --- Conversaciones analizadas (auditoría de extracciones vigentes) ------------
+
+# Una conversación está "analizada" si su AIExtraction es is_current=True y
+# status="success". No hay estado/tabla nuevos. Filtros por campos JSON con
+# `as_string()` (portable: PostgreSQL JSONB ->> y SQLite json_extract).
+AI_INTENT_FILTERS = (
+    ("", "Todas"),
+    ("alta", "Alta"),
+    ("media", "Media"),
+    ("baja", "Baja"),
+    ("informativa", "Informativa"),
+    ("none", "No determinada"),
+)
+AI_SIGNAL_FILTERS = (
+    ("", "Todas"),
+    ("cita", "Cita"),
+    ("cotizacion", "Cotización"),
+    ("presupuesto", "Presupuesto"),
+    ("cuota_inicial", "Cuota inicial"),
+    ("forma_pago", "Forma de pago"),
+    ("objecion", "Objeción"),
+)
+AI_STATE_FILTERS = (
+    ("", "Todas"),
+    ("any", "Tiene alguna señal"),
+    ("none", "Sin señales determinadas"),
+    ("undetermined", "Tiene campos no determinados"),
+)
+AI_ORDER_OPTIONS = (
+    ("analyzed_desc", "Más recientemente analizadas"),
+    ("analyzed_asc", "Más antiguamente analizadas"),
+    ("conversation_desc", "Conversación más reciente"),
+    ("conversation_asc", "Conversación más antigua"),
+)
+_SIGNAL_FIELDS = ("solicitud_cita", "solicitud_cotizacion", "presupuesto",
+                  "cuota_inicial", "forma_pago", "objecion")
+
+
+def _ai_field_text(name: str):
+    return AIExtraction.fields[name].as_string()
+
+
+def _ai_bool_true(name: str):
+    # Cast a texto: `as_string()` da texto en PostgreSQL (->> ) y nativo en
+    # SQLite (json_extract); el cast unifica "true"/"1" en ambos dialectos.
+    return sa.cast(_ai_field_text(name), sa.String).in_(("true", "1"))
+
+
+def _ai_not_null(name: str):
+    return _ai_field_text(name).is_not(None)
+
+
+def _ai_is_null(name: str):
+    return _ai_field_text(name).is_(None)
+
+
+def _ai_signal_condition(signal: str):
+    if signal == "cita":
+        return _ai_bool_true("solicitud_cita")
+    if signal == "cotizacion":
+        return _ai_bool_true("solicitud_cotizacion")
+    if signal in ("presupuesto", "cuota_inicial", "forma_pago", "objecion"):
+        return _ai_not_null(signal)
+    return None
+
+
+def _ai_bool_not_true(name: str):
+    # "No verdadero" con lógica de 3 valores: null o false (nunca NULL).
+    return sa.or_(
+        _ai_is_null(name),
+        sa.cast(_ai_field_text(name), sa.String).in_(("false", "0")),
+    )
+
+
+def _ai_state_condition(state: str):
+    if state == "any":
+        return sa.or_(
+            _ai_bool_true("solicitud_cita"),
+            _ai_bool_true("solicitud_cotizacion"),
+            _ai_not_null("presupuesto"),
+            _ai_not_null("cuota_inicial"),
+            _ai_not_null("forma_pago"),
+            _ai_not_null("objecion"),
+        )
+    if state == "none":
+        # Expresado en positivo para que los JSON null/missing no propaguen NULL.
+        return sa.and_(
+            _ai_bool_not_true("solicitud_cita"),
+            _ai_bool_not_true("solicitud_cotizacion"),
+            _ai_is_null("presupuesto"),
+            _ai_is_null("cuota_inicial"),
+            _ai_is_null("forma_pago"),
+            _ai_is_null("objecion"),
+        )
+    if state == "undetermined":
+        return sa.or_(*[_ai_is_null(field) for field in _SIGNAL_FIELDS])
+    return None
+
+
+def _analyzed_order(order: str):
+    """Orden determinista; por defecto, análisis más reciente primero."""
+    if order == "analyzed_asc":
+        return (AIExtraction.created_at.asc(), Conversation.conversation_id.asc())
+    if order == "conversation_desc":
+        return (Conversation.started_at.desc(), Conversation.conversation_id.asc())
+    if order == "conversation_asc":
+        return (Conversation.started_at.asc(), Conversation.conversation_id.asc())
+    return (AIExtraction.created_at.desc(), Conversation.conversation_id.asc())
+
+
+def _analyzed_conversations_stmt(user: User, search: str | None,
+                                 intent: str | None, signal: str | None,
+                                 state: str | None):
+    """Consulta base de conversaciones analizadas, acotada al scope del rol."""
+    # Banda del lead (score vigente) y si tiene asignación vigente, en subconsultas
+    # escalares para no multiplicar filas por joins.
+    band_sq = (
+        sa.select(LeadScore.band)
+        .where(LeadScore.lead_id == Conversation.lead_id,
+               LeadScore.is_current.is_(True))
+        .order_by(LeadScore.score_id.desc())
+        .limit(1)
+        .correlate(Conversation)
+        .scalar_subquery()
+    )
+    assign_sq = (
+        sa.select(sa.func.count(Assignment.assignment_id))
+        .where(Assignment.lead_id == Conversation.lead_id,
+               Assignment.is_current.is_(True))
+        .correlate(Conversation)
+        .scalar_subquery()
+    )
+    stmt = (
+        sa.select(Conversation, AIExtraction, Lead,
+                  band_sq.label("lead_band"), assign_sq.label("assign_count"))
+        .join(
+            AIExtraction,
+            (AIExtraction.conversation_id == Conversation.conversation_id)
+            & (AIExtraction.is_current.is_(True))
+            & (AIExtraction.status == "success"),
+        )
+        .outerjoin(Lead, Lead.lead_id == Conversation.lead_id)
+    )
+    if user.role == ROLE_ADVISOR:
+        # Solo leads con asignación vigente del propio asesor.
+        assigned = sa.select(Assignment.lead_id).where(
+            Assignment.advisor_id == user.advisor_id,
+            Assignment.company_id == user.company_id,
+            Assignment.is_current.is_(True),
+        )
+        stmt = stmt.where(Conversation.lead_id.in_(assigned))
+    elif user.role != ROLE_ADMIN:
+        stmt = stmt.where(Conversation.company_id == user.company_id)
+    if search and search.strip():
+        needle = f"%{search.strip()}%"
+        stmt = stmt.where(sa.or_(
+            Conversation.conversation_id.ilike(needle),
+            Conversation.lead_id.ilike(needle),
+            Lead.customer_name.ilike(needle),
+        ))
+    if intent == "none":
+        stmt = stmt.where(_ai_is_null("intencion_compra"))
+    elif intent in ("alta", "media", "baja", "informativa"):
+        stmt = stmt.where(_ai_field_text("intencion_compra") == intent)
+    if signal:
+        condition = _ai_signal_condition(signal)
+        if condition is not None:
+            stmt = stmt.where(condition)
+    if state:
+        condition = _ai_state_condition(state)
+        if condition is not None:
+            stmt = stmt.where(condition)
+    return stmt
+
+
+def _conversation_in_scope(session: Session, user: User,
+                           conversation: Conversation) -> bool:
+    if user.role == ROLE_ADMIN:
+        return True
+    if user.role == ROLE_SUPERVISOR:
+        return conversation.company_id == user.company_id
+    if user.role == ROLE_ADVISOR:
+        if not conversation.lead_id:
+            return False
+        return session.scalar(
+            sa.select(Assignment.assignment_id).where(
+                Assignment.advisor_id == user.advisor_id,
+                Assignment.company_id == user.company_id,
+                Assignment.lead_id == conversation.lead_id,
+                Assignment.is_current.is_(True),
+            ).limit(1)
+        ) is not None
+    return False
+
+
+def _ai_conversation_row(conversation: Conversation, lead: Lead | None,
+                         extraction: AIExtraction, lead_band: str | None = None,
+                         assign_count: int = 0) -> dict:
+    fields = extraction.fields if isinstance(extraction.fields, dict) else {}
+    return {
+        "conversation_id": conversation.conversation_id,
+        "customer_name": lead.customer_name if lead else None,
+        "lead_id": conversation.lead_id,
+        "company_id": conversation.company_id,
+        "analyzed_at": extraction.created_at,
+        "prompt_version": extraction.prompt_version,
+        "schema_version": extraction.schema_version,
+        "lead_band": lead_band,
+        "assigned": bool(assign_count),
+        "model": fields.get("model_interes"),
+        "intent": fields.get("intencion_compra"),
+        "cita": fields.get("solicitud_cita"),
+        "cotizacion": fields.get("solicitud_cotizacion"),
+        "presupuesto": fields.get("presupuesto"),
+        "cuota_inicial": fields.get("cuota_inicial"),
+        "forma_pago": fields.get("forma_pago"),
+        "objecion": fields.get("objecion"),
+    }
+
+
+def _ai_pending_conversation_ids(session: Session,
+                                 scope_companies: list[str]) -> list[str]:
+    """Conversaciones del alcance SIN extracción IA vigente (cualquier estado).
+
+    Se excluyen también las filas `error` vigentes: volver a extraer el mismo
+    input sin `force` choca con la constraint única (conversation_id,
+    input_hash), así que no cuentan como "pendientes de analizar".
+    """
+    if not scope_companies:
+        return []
+    stmt = (
+        sa.select(Conversation.conversation_id)
+        .outerjoin(
+            AIExtraction,
+            (AIExtraction.conversation_id == Conversation.conversation_id)
+            & (AIExtraction.is_current.is_(True)),
+        )
+        .where(
+            Conversation.company_id.in_(scope_companies),
+            AIExtraction.extraction_id.is_(None),
+        )
+        .order_by(Conversation.conversation_id)
+    )
+    return list(session.scalars(stmt).all())
 
 
 class SupervisionScope:
@@ -392,6 +697,22 @@ def supervision(
     retry_overflow: int | None = Query(default=None),
     retry_reused: int | None = Query(default=None),
     page: str | None = Query(default=None),
+    ai: str | None = Query(default=None),
+    ai_provider: str | None = Query(default=None),
+    ai_model: str | None = Query(default=None),
+    ai_limit: int | None = Query(default=None),
+    ai_candidates: int | None = Query(default=None),
+    ai_processed: int | None = Query(default=None),
+    ai_reused: int | None = Query(default=None),
+    ai_errors: int | None = Query(default=None),
+    ai_failed: int | None = Query(default=None),
+    ai_seconds: float | None = Query(default=None),
+    ai_empty: int | None = Query(default=None),
+    ai_unavailable: int | None = Query(default=None),
+    ai_reason: str | None = Query(default=None),
+    ai_rescored: int | None = Query(default=None),
+    ai_rescore_errors: int | None = Query(default=None),
+    ai_ids: str | None = Query(default=None),
 ):
     if isinstance(user, RedirectResponse):
         return user
@@ -534,6 +855,44 @@ def supervision(
         "pending_count": overflow_total,
         "base_query": ("?" + urlencode(base_params)) if base_params else "",
     }
+    # Conversaciones de ESTA ejecución (ids en la query), resueltas en batch y
+    # re-filtradas por el scope de la sesión (nunca fuera de la empresa).
+    ai_conversations: list[dict] = []
+    requested_ids = _parse_ai_ids(ai_ids)
+    if requested_ids:
+        ai_conversations = [
+            {"conversation_id": conv_id, "lead_id": lead_id,
+             "customer_name": customer_name, "status": status}
+            for conv_id, lead_id, customer_name, status in session.execute(
+                sa.select(Conversation.conversation_id, Conversation.lead_id,
+                          Lead.customer_name, AIExtraction.status)
+                .select_from(Conversation)
+                .outerjoin(Lead, Lead.lead_id == Conversation.lead_id)
+                .outerjoin(
+                    AIExtraction,
+                    (AIExtraction.conversation_id == Conversation.conversation_id)
+                    & (AIExtraction.is_current.is_(True)),
+                )
+                .where(Conversation.conversation_id.in_(requested_ids),
+                       Conversation.company_id.in_(scope_companies))
+                .order_by(Conversation.conversation_id)
+            ).all()
+        ]
+    lifecycle_rows = (
+        dict(session.execute(
+            sa.select(Lead.status, sa.func.count())
+            .where(Lead.company_id.in_(scope_companies))
+            .group_by(Lead.status)
+        ).all())
+        if scope_companies else {}
+    )
+    lifecycle = {
+        "open": sum(count for status, count in lifecycle_rows.items()
+                    if not is_lead_terminal(status)),
+        "closed": lifecycle_rows.get("Cerrado", 0),
+        "lost": lifecycle_rows.get("Perdido", 0),
+        "discarded": lifecycle_rows.get("Descartado", 0),
+    }
     return templates.TemplateResponse(
         request=request,
         name="supervision.html",
@@ -548,6 +907,7 @@ def supervision(
             "total": total,
             "assigned_total": assigned_total,
             "overflow_total": overflow_total,
+            "lifecycle": lifecycle,
             "pagination": pagination,
             "tabs": tabs,
             "filter_action": "/supervision",
@@ -569,6 +929,30 @@ def supervision(
             "band_options": ["Alta", "Media", "Baja"],
             "status_options": status_options,
             "page_size": PAGE_SIZE,
+            "ai": {
+                "providers": _configured_ai_providers(settings),
+                "pending": len(_ai_pending_conversation_ids(session, scope_companies)),
+                "limit_options": list(AI_LIMIT_OPTIONS),
+                "limit_default": 10,
+                "max_limit": MAX_AI_LIMIT,
+            },
+            "ai_result": ({
+                "provider": ai_provider or "",
+                "model": ai_model or "",
+                "limit": ai_limit,
+                "candidates": ai_candidates,
+                "processed": ai_processed,
+                "reused": ai_reused,
+                "errors": ai_errors,
+                "failed": ai_failed,
+                "seconds": ai_seconds,
+                "rescored": ai_rescored,
+                "rescore_errors": ai_rescore_errors,
+                "conversations": ai_conversations,
+                "empty": bool(ai_empty),
+                "unavailable": bool(ai_unavailable),
+                "reason": ai_reason or "",
+            } if ai is not None else None),
         },
     )
 
@@ -740,6 +1124,244 @@ def supervision_pending(
     )
 
 
+@router.post("/supervision/run-ai")
+def run_ai_analysis(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    provider: str = Form(default=""),
+    limit: str = Form(default=""),
+    empresa: str = Form(default=None),
+    return_to: str = Form(default=None),
+):
+    """Ejecuta el análisis IA (máx. `limit`) sobre pendientes del alcance.
+
+    Reutiliza el pipeline existente: `process_pending` (extracción + validación
+    + persistencia). Solo permitido a supervisor/admin y acotado a su empresa.
+    """
+    if isinstance(user, RedirectResponse):
+        return user
+    if user.role not in (ROLE_SUPERVISOR, ROLE_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Solo supervisor o admin pueden ejecutar el análisis IA",
+        )
+    settings = get_settings()
+    is_admin = user.role == ROLE_ADMIN
+    base = ("/supervision/pending" if return_to == "/supervision/pending"
+            else "/supervision")
+
+    # Validación server-side: el navegador no decide proveedor ni límite.
+    allowed = {p["value"] for p in _configured_ai_providers(settings)}
+    if provider not in allowed:
+        raise HTTPException(status_code=400, detail="Proveedor de IA no permitido")
+    selected_limit = _validate_ai_limit(limit)
+    if selected_limit is None:
+        raise HTTPException(status_code=400, detail="Límite de IA inválido")
+
+    scope = _supervision_scope(session, user, is_admin, empresa, None)
+    conversation_ids = _ai_pending_conversation_ids(session, scope.company_ids)
+    if not conversation_ids:
+        return RedirectResponse(
+            url=f"{base}?ai=1&ai_empty=1&ai_provider={quote(provider)}",
+            status_code=303,
+        )
+
+    extractor = build_extractor(provider, settings)
+    available, reason = extractor.availability()
+    if not available:
+        return RedirectResponse(
+            url=(f"{base}?ai=1&ai_unavailable=1&ai_provider={quote(provider)}"
+                 f"&ai_reason={quote(str(reason))}"),
+            status_code=303,
+        )
+
+    started = time.perf_counter()
+    report = process_pending(
+        session, extractor, limit=selected_limit,
+        conversation_ids=conversation_ids,
+    )
+    elapsed = round(time.perf_counter() - started, 1)
+
+    # Recálculo inmediato del score de los leads afectados (reutiliza
+    # score_and_persist_lead; consolida internamente). Nunca ejecuta
+    # ingesta, dedup, asignación ni un nuevo pipeline.
+    rescored = 0
+    rescore_errors: list[dict] = []
+    processed_ids = report.get("processed_ids") or []
+    lead_ids: list[str] = []
+    if processed_ids:
+        seen: set[str] = set()
+        rows = session.execute(
+            sa.select(Conversation.lead_id).where(
+                Conversation.conversation_id.in_(processed_ids),
+                Conversation.company_id.in_(scope.company_ids),
+                Conversation.lead_id.is_not(None),
+            )
+        ).all()
+        for (lead_id,) in rows:
+            if lead_id and lead_id not in seen:
+                seen.add(lead_id)
+                lead_ids.append(lead_id)
+    for lead_id in lead_ids:
+        try:
+            score_and_persist_lead(session, lead_id)
+        except Exception as exc:  # noqa: BLE001 - un lead no rompe el resto
+            session.rollback()
+            rescore_errors.append(
+                {"lead_id": lead_id, "error": f"{type(exc).__name__}: {exc}"[:200]})
+            continue
+        rescored += 1
+
+    params = {
+        "ai": "1",
+        "ai_provider": provider,
+        "ai_model": str(report.get("model") or ""),
+        "ai_limit": selected_limit,
+        "ai_candidates": report["candidates"],
+        "ai_processed": report["processed"],
+        "ai_reused": report["reused"],
+        "ai_errors": report["errors"],
+        "ai_failed": report["failed"],
+        "ai_seconds": elapsed,
+        "ai_rescored": rescored,
+        "ai_rescore_errors": len(rescore_errors),
+        "ai_ids": ",".join(processed_ids),
+    }
+    return RedirectResponse(url=f"{base}?{urlencode(params)}", status_code=303)
+
+
+@router.get("/ai/conversations", response_class=HTMLResponse)
+def ai_conversations(
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    search: str | None = Query(default=None),
+    intent: str | None = Query(default=None),
+    signal: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    order: str | None = Query(default=None),
+    page: str | None = Query(default=None),
+):
+    """Conversaciones con extracción IA vigente y exitosa dentro del scope."""
+    if isinstance(user, RedirectResponse):
+        return user
+    settings = get_settings()
+    order_value = order if order in {value for value, _ in AI_ORDER_OPTIONS} else "analyzed_desc"
+    stmt = _analyzed_conversations_stmt(user, search, intent, signal, state)
+    total = session.scalar(
+        sa.select(sa.func.count()).select_from(stmt.order_by(None).subquery())
+    ) or 0
+    total_pages = max(1, math.ceil(total / PAGE_SIZE))
+    page_number = min(_parse_page(page), total_pages)
+    offset = (page_number - 1) * PAGE_SIZE
+    rows = [
+        _ai_conversation_row(conversation, lead, extraction, lead_band, assign_count)
+        for conversation, extraction, lead, lead_band, assign_count in session.execute(
+            stmt.order_by(*_analyzed_order(order_value))
+            .limit(PAGE_SIZE).offset(offset)
+        ).all()
+    ]
+    base_params: dict = {}
+    for key, value in (("search", search), ("intent", intent),
+                       ("signal", signal), ("state", state), ("order", order_value)):
+        if value:
+            base_params[key] = value
+
+    def _url(target_page: int) -> str:
+        return "/ai/conversations?" + urlencode({**base_params, "page": target_page})
+
+    pagination = {
+        "page": page_number,
+        "total_pages": total_pages,
+        "total": total,
+        "prev_url": _url(page_number - 1) if page_number > 1 else None,
+        "next_url": _url(page_number + 1) if page_number < total_pages else None,
+    }
+    # Enlace al detalle conservando filtros/orden/página (vuelta a la lista).
+    detail_query = urlencode(base_params)
+    return templates.TemplateResponse(
+        request=request,
+        name="ai_conversations.html",
+        context={
+            "app_name": settings.app_name,
+            "user": user,
+            "is_admin": user.role == ROLE_ADMIN,
+            "rows": rows,
+            "pagination": pagination,
+            "filters": {"search": search or "", "intent": intent or "",
+                        "signal": signal or "", "state": state or "",
+                        "order": order_value},
+            "intent_filters": AI_INTENT_FILTERS,
+            "signal_filters": AI_SIGNAL_FILTERS,
+            "state_filters": AI_STATE_FILTERS,
+            "order_options": AI_ORDER_OPTIONS,
+            "detail_query": ("?" + detail_query) if detail_query else "",
+        },
+    )
+
+
+@router.get("/ai/conversations/{conversation_id}", response_class=HTMLResponse)
+def ai_conversation_detail(
+    conversation_id: str,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    search: str | None = Query(default=None),
+    intent: str | None = Query(default=None),
+    signal: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    order: str | None = Query(default=None),
+    page: str | None = Query(default=None),
+):
+    """Detalle de una conversación analizada (mensajes + extracción IA)."""
+    if isinstance(user, RedirectResponse):
+        return user
+    settings = get_settings()
+    conversation = session.get(Conversation, conversation_id)
+    if conversation is None or not _conversation_in_scope(session, user, conversation):
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+    extraction = get_current_extraction(session, conversation_id)
+    fields = (extraction.fields if extraction and isinstance(extraction.fields, dict)
+              else {})
+    lead = session.get(Lead, conversation.lead_id) if conversation.lead_id else None
+    ordered = sorted(
+        (m for m in (conversation.messages or []) if isinstance(m, dict)),
+        key=lambda m: m.get("seq") if isinstance(m.get("seq"), int) else 0,
+    )
+    messages = [
+        {
+            "sender_label": sender_label(m.get("sender")),
+            "sender_class": sender_class(m.get("sender")),
+            "hour": str(m.get("hour") or ""),
+            "text": str(m.get("text") or ""),
+        }
+        for m in ordered
+    ]
+    back_params: dict = {}
+    for key, value in (("search", search), ("intent", intent),
+                       ("signal", signal), ("state", state), ("order", order),
+                       ("page", page)):
+        if value:
+            back_params[key] = value
+    back_url = "/ai/conversations" + (f"?{urlencode(back_params)}" if back_params else "")
+    return templates.TemplateResponse(
+        request=request,
+        name="ai_conversation_detail.html",
+        context={
+            "app_name": settings.app_name,
+            "user": user,
+            "is_admin": user.role == ROLE_ADMIN,
+            "conversation": conversation,
+            "lead": lead,
+            "extraction": extraction,
+            "fields": fields,
+            "messages": messages,
+            "back_url": back_url,
+        },
+    )
+
+
 @router.post("/supervision/retry-assignment")
 def retry_assignment_action(
     request: Request,
@@ -805,6 +1427,7 @@ def lead_detail(
     if isinstance(user, RedirectResponse):
         return user
     settings = get_settings()
+    lead: Lead | None = None
     if user.role == ROLE_ADVISOR:
         advisor = session.get(Advisor, user.advisor_id) if user.advisor_id else None
         if advisor is None or advisor.company_id != user.company_id:
@@ -828,6 +1451,13 @@ def lead_detail(
             advisor.name, "/", "Volver a Mis leads de hoy")
     else:
         # Supervisor: su empresa. Admin: global. Nunca por parámetro.
+        # El lead puede no tener asignación vigente: el scope se valida por la
+        # empresa del lead (supervisor) o global (admin), no por la asignación.
+        lead = session.get(Lead, lead_id)
+        if lead is None:
+            raise HTTPException(status_code=404, detail="Lead no encontrado")
+        if user.role != ROLE_ADMIN and lead.company_id != user.company_id:
+            raise HTTPException(status_code=404, detail="Lead no encontrado")
         company_filter = (
             sa.true() if user.role == ROLE_ADMIN
             else Assignment.company_id == user.company_id
@@ -839,12 +1469,15 @@ def lead_detail(
                    Assignment.is_current.is_(True))
             .order_by(Assignment.run_date.desc(), Assignment.assignment_id.desc())
         )
-        if assignment is None:
-            raise HTTPException(status_code=404, detail="Lead sin asignación vigente")
-        owner = session.get(Advisor, assignment.advisor_id) if assignment.advisor_id else None
-        advisor, owner_name = owner, (owner.name if owner else "Sin asignar (overflow)")
+        owner = (session.get(Advisor, assignment.advisor_id)
+                 if assignment and assignment.advisor_id else None)
+        advisor, owner_name = owner, (
+            owner.name if owner else "Sin asignación vigente")
         back_url, back_label = "/supervision", "Volver a Supervisión comercial"
-    lead = session.get(Lead, lead_id)
+    if lead is None:
+        lead = session.get(Lead, lead_id)
+    if lead is None:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
     score = _current_score(session, lead_id)
     catalog = session.get(CatalogItem, lead.sku) if lead.sku else None
     conversations = session.scalars(
@@ -852,6 +1485,16 @@ def lead_detail(
         .where(Conversation.lead_id == lead_id)
         .order_by(Conversation.conversation_id)
     ).all()
+    # Catálogo canónico (mismo matching que la ingesta) para comparar modelos.
+    catalog_rows = session.execute(
+        sa.select(CatalogItem.sku, CatalogItem.brand, CatalogItem.line)
+    ).all()
+    catalog_index = build_catalog_index(catalog_rows)
+    brand_by_sku = {sku: brand for sku, brand, _line in catalog_rows}
+    crm_text = (lead.model_text_raw or "").strip()
+    crm_match = match_model(crm_text, catalog_index) if crm_text else {"sku": None}
+    crm_sku = lead.sku or crm_match["sku"]
+    ia_entries: list[dict] = []
     conv_rows = []
     for conversation in conversations:
         messages = [m for m in (conversation.messages or []) if isinstance(m, dict)]
@@ -860,11 +1503,20 @@ def lead_detail(
             key=lambda m: m.get("seq") if isinstance(m.get("seq"), int) else 0,
         )
         extraction = get_current_extraction(session, conversation.conversation_id)
+        fields = dict(extraction.fields) if extraction and extraction.fields else {}
+        ia_model = (fields.get("model_interes") or "").strip()
+        if ia_model:
+            ia_entries.append({
+                "conversation_id": conversation.conversation_id,
+                "ia_model": ia_model,
+                "ia_sku": match_model(ia_model, catalog_index)["sku"],
+                "evidence": fields.get("model_interes_evidence"),
+            })
         conv_rows.append(
             {
                 "conversation": conversation,
                 "message_count": len(messages),
-                "fields": dict(extraction.fields) if extraction and extraction.fields else {},
+                "fields": fields,
                 "messages": [
                     {
                         "sender_label": sender_label(m.get("sender")),
@@ -876,6 +1528,27 @@ def lead_detail(
                 ],
             }
         )
+    # Inconsistencia SOLO con modelos comparables (SKU canónico) y distintos.
+    model_inconsistencies: list[dict] = []
+    if crm_sku:
+        crm_brand = brand_by_sku.get(crm_sku)
+        seen_ia_skus: set[str] = set()
+        for entry in ia_entries:
+            ia_sku = entry["ia_sku"]
+            if not ia_sku or ia_sku == crm_sku or ia_sku in seen_ia_skus:
+                continue
+            seen_ia_skus.add(ia_sku)
+            model_inconsistencies.append({
+                "conversation_id": entry["conversation_id"],
+                "crm_model": crm_text or (_model_label(lead, catalog)),
+                "crm_sku": crm_sku,
+                "ia_model": entry["ia_model"],
+                "ia_sku": ia_sku,
+                "kind": ("Mismo fabricante, modelo diferente"
+                         if brand_by_sku.get(ia_sku) == crm_brand
+                         else "Marca distinta"),
+                "evidence": entry["evidence"],
+            })
     reasons_display = [
         {
             "label": score_reason_label(reason.get("code")),
@@ -902,7 +1575,61 @@ def lead_detail(
             "city": _city_label(lead),
             "reasons": reasons_display,
             "conversations": conv_rows,
+            "model_inconsistencies": model_inconsistencies,
             "unknown": UNKNOWN,
             "bool_label": _bool_label,
+            "open_statuses": OPEN_STATUSES,
+            "terminal_statuses": TERMINAL_STATUSES,
+            "close_reasons": CLOSE_REASONS,
+            "is_terminal": is_lead_terminal(lead.status),
         },
     )
+
+
+@router.post("/leads/{lead_id}/status")
+def update_lead_status_action(
+    lead_id: str,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User | RedirectResponse = Depends(require_login),
+    status: str = Form(...),
+    close_reason: str = Form(default=""),
+):
+    """Cambia el estado de gestión del lead; si es terminal, lo cierra con motivo.
+
+    Permisos: asesor solo sobre leads con asignación vigente suya; supervisor
+    solo sobre su empresa; admin global.
+    """
+    if isinstance(user, RedirectResponse):
+        return user
+
+    lead = session.get(Lead, lead_id)
+    if lead is None:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+
+    if user.role == ROLE_ADVISOR:
+        advisor = session.get(Advisor, user.advisor_id) if user.advisor_id else None
+        if advisor is None or advisor.company_id != user.company_id:
+            raise HTTPException(status_code=403, detail="Cuenta de asesor no válida")
+        assignment = session.scalar(
+            sa.select(Assignment).where(
+                Assignment.advisor_id == advisor.advisor_id,
+                Assignment.company_id == user.company_id,
+                Assignment.lead_id == lead_id,
+                Assignment.is_current.is_(True),
+            )
+        )
+        if assignment is None:
+            raise HTTPException(status_code=403, detail="Lead fuera de su ámbito")
+    elif user.role == ROLE_SUPERVISOR:
+        if lead.company_id != user.company_id:
+            raise HTTPException(status_code=404, detail="Lead no encontrado")
+    elif user.role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Rol no autorizado")
+
+    try:
+        update_lead_status(session, lead, status, close_reason=close_reason or None)
+    except LeadTransitionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return RedirectResponse(url=f"/leads/{lead_id}", status_code=303)

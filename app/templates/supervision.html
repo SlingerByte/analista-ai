@@ -50,6 +50,12 @@
         <div class="card"><strong>{{ counts.Media }}</strong><span>Prioridad Media</span></div>
         <div class="card"><strong>{{ counts.Baja }}</strong><span>Prioridad Baja</span></div>
       </section>
+      <section class="cards" aria-label="Ciclo de vida de leads">
+        <div class="card"><strong>{{ lifecycle.open }}</strong><span>Leads abiertos</span></div>
+        <div class="card"><strong>{{ lifecycle.closed }}</strong><span>Leads cerrados</span></div>
+        <div class="card"><strong>{{ lifecycle.lost }}</strong><span>Leads perdidos</span></div>
+        <div class="card"><strong>{{ lifecycle.discarded }}</strong><span>Leads descartados</span></div>
+      </section>
       {% if retry.ran %}
       <p style="background:#dbeafe;border:1px solid #93c5fd;border-radius:0.5rem;padding:0.6rem 1rem;color:#1e3a8a;">
         Reintento ejecutado: <strong>{{ retry.assigned }}</strong> asignados ·
@@ -57,6 +63,69 @@
         (sin cambios: el plan vigente ya coincidía){% endif %}.
       </p>
       {% endif %}
+      <section aria-label="Análisis con IA" style="background:#fff;border:1px solid #cbd5e1;border-radius:0.5rem;padding:1rem 1.25rem;margin-bottom:1rem;">
+        <h2 style="font-size:1.1rem;margin-top:0;">Análisis con IA</h2>
+        <p style="color:#475569;font-size:0.9rem;margin:0.25rem 0 0.75rem;">
+          Ejecuta la extracción IA sobre conversaciones pendientes de tu alcance.
+          Se procesan como máximo las seleccionadas; el resto queda pendiente.
+          Pendientes: <strong>{{ ai.pending }}</strong>.
+        </p>
+        <form method="post" action="/supervision/run-ai" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:end;"
+              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Analizando…';">
+          {% if is_admin %}<input type="hidden" name="empresa" value="{{ filters.empresa }}" />{% endif %}
+          <label style="font-size:0.8rem;color:#475569;display:grid;gap:0.25rem;">Proveedor de IA
+            <select name="provider">
+              {% for option in ai.providers %}
+              <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label style="font-size:0.8rem;color:#475569;display:grid;gap:0.25rem;">Conversaciones a analizar
+            <input type="number" name="limit" min="1" max="{{ ai.max_limit }}"
+                   value="{{ ai.limit_default }}" style="width:6rem;" />
+          </label>
+          <button type="submit" {% if ai.pending == 0 %}disabled{% endif %}>Analizar con IA</button>
+        </form>
+        {% if ai_result %}
+          {% if ai_result.empty %}
+          <p style="background:#fef3c7;border:1px solid #fcd34d;border-radius:0.5rem;padding:0.6rem 1rem;color:#92400e;margin-bottom:0;">
+            No hay conversaciones pendientes para analizar.
+          </p>
+          {% elif ai_result.unavailable %}
+          <p style="background:#fee2e2;border:1px solid #fca5a5;border-radius:0.5rem;padding:0.6rem 1rem;color:#991b1b;margin-bottom:0;">
+            <strong>{{ ai_result.reason }}</strong>{% if ai_result.provider %} <span style="opacity:.8;">(proveedor: {{ ai_result.provider }})</span>{% endif %}
+          </p>
+          {% else %}
+          <div style="background:#dcfce7;border:1px solid #86efac;border-radius:0.5rem;padding:0.6rem 1rem;color:#166534;margin-bottom:0;">
+            Análisis completado
+            <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
+              <li><strong>{{ ai_result.processed | int }}</strong> conversaciones procesadas ({{ ai_result.candidates | int }} seleccionadas con límite {{ ai_result.limit | int }})</li>
+              <li><strong>{{ (ai_result.processed | int) - (ai_result.errors | int) - (ai_result.failed | int) }}</strong> exitosas</li>
+              <li><strong>{{ ai_result.errors | int }}</strong> con error · <strong>{{ ai_result.failed | int }}</strong> fallidas · <strong>{{ ai_result.reused | int }}</strong> reutilizadas</li>
+              <li><strong>{{ ai_result.rescored | int }}</strong> leads con score actualizado{% if ai_result.rescore_errors %} · <strong>{{ ai_result.rescore_errors | int }}</strong> con error de score{% endif %}</li>
+              <li>Proveedor: {{ ai_result.provider }} · Modelo: {{ ai_result.model }}</li>
+              <li>Tiempo: {{ ai_result.seconds }} s</li>
+            </ul>
+            {% if ai_result.conversations %}
+            <details style="margin-top:0.6rem;">
+              <summary style="cursor:pointer;font-weight:600;">Ver analizadas ({{ ai_result.conversations|length }})</summary>
+              <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
+                {% for c in ai_result.conversations %}
+                <li>
+                  <code>{{ c.conversation_id }}</code>{% if c.customer_name %} — {{ c.customer_name }}{% endif %} — {{ c.lead_id or 'Sin lead' }}{% if c.status == 'error' %} <span style="color:#991b1b;">(con error)</span>{% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endif %}
+        <p style="margin:0.85rem 0 0;font-size:0.9rem;">
+          <a href="/ai/conversations">Ver conversaciones analizadas</a>
+          <span style="color:#64748b;">— todas las extracciones IA vigentes y exitosas de tu alcance (auditoría).</span>
+        </p>
+      </section>
       {% include "_supervision_filters.html" %}
       <section aria-label="Gestión comercial">
       <h2 style="font-size:1.1rem;">Gestión comercial ({{ pagination.total }} resultados)</h2>

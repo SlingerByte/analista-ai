@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PRODUCTION_ENVS = frozenset({"production", "prod"})
@@ -30,6 +31,22 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/analista_ia"
     port: int = 8000
 
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        """Fuerza el driver psycopg 3 (`postgresql+psycopg://`).
+
+        Supabase/Render entregan la URL como `postgres://` o `postgresql://`;
+        sin normalizar, SQLAlchemy intentaría `psycopg2` (no instalado). Solo
+        reescribe el esquema; no toca host, credenciales ni parámetros.
+        """
+        url = (value or "").strip()
+        if url.startswith("postgres://"):
+            return "postgresql+psycopg://" + url[len("postgres://"):]
+        if url.startswith("postgresql://"):
+            return "postgresql+psycopg://" + url[len("postgresql://"):]
+        return url
+
     # Usuarios demo (solo desarrollo). Las contraseñas pueden sobreescribirse
     # por entorno (ADVISOR_DEMO_PASSWORD, etc.); en la DB solo vive el hash.
     advisor_demo_email: str = "advisor.demo@motos.local"
@@ -52,6 +69,8 @@ class Settings(BaseSettings):
     groq_base_url: str = "https://api.groq.com/openai/v1"
     local_ai_agent_url: str = "http://127.0.0.1:8765"
     local_ai_model: str | None = "qwen2.5:3b"
+    # Endpoint de Ollama para el proveedor `local` (mismo equipo).
+    local_ai_ollama_url: str = "http://127.0.0.1:11434"
 
 
 @lru_cache

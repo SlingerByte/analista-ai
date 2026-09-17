@@ -493,6 +493,14 @@ Casos:
 | Asesor inactivo | Excluido (audit: `AS-037`, `AS-040`). |
 | Re-ejecución del día | Nueva `assignment_run`; se marca la anterior `is_current=false`. |
 
+> **Actualización (lifecycle).** La ocupación depende del estado del lead:
+> `capacidad disponible = daily_capacity − leads abiertos con asignación
+> operativa vigente`. Los estados terminales (`Cerrado`, `Perdido`,
+> `Descartado`) no ocupan capacidad, no vuelven a ser candidatos y al cerrarse
+> liberan cupo que el siguiente ciclo asigna a `overflow`. Un lead abierto
+> conserva su asesor vigente (continuidad, sin rebalanceo). Definición central
+> de estados en `app/lead_status.py`; cálculo en `app/assignment/service.py`.
+
 Todo dentro de la empresa correspondiente, garantizado en la capa de acceso
 (que siempre aplica el contexto de empresa) y con RLS adicional en `assignments`.
 

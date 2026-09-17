@@ -238,3 +238,56 @@ def test_7_pipeline_batch_enforces_ai_configuration(setup, monkeypatch):
     assert report["steps"]["ai"]["status"] == "failed"
     assert "IA inválida" in report["steps"]["ai"]["error"]
     assert built["count"] == 0
+
+
+# --- --ai-limit: el límite aplica SOLO a la etapa IA ---------------------------
+# El fixture crea 1 conversación (CONV-1) y un extractor fake (sin red).
+
+
+def test_8_ai_limit_one(setup):
+    maker, data_dir, extractor = setup
+    with maker() as session:
+        report = run_pipeline(session, run_date=DAY, data_dir=data_dir, ai_limit=1)
+        assert report["status"] == "completed"
+        assert report["steps"]["ai"]["candidates"] == 1
+        assert report["steps"]["ai"]["processed"] == 1
+        assert extractor.calls == 1
+        # El resto del pipeline sigue procesando normalmente.
+        assert report["steps"]["scoring"]["leads"] == 3
+        assert session.scalar(sa.select(sa.func.count()).select_from(Assignment)) == 3
+
+
+def test_9_ai_limit_mayor_que_pendientes(setup):
+    maker, data_dir, extractor = setup
+    with maker() as session:
+        report = run_pipeline(session, run_date=DAY, data_dir=data_dir, ai_limit=10)
+        # Solo la pendiente disponible, sin errores artificiales.
+        assert report["steps"]["ai"]["candidates"] == 1
+        assert report["steps"]["ai"]["processed"] == 1
+        assert report["steps"]["ai"]["failed"] == 0
+        assert extractor.calls == 1
+
+
+def test_10_ai_limit_zero_no_llama_al_proveedor(setup):
+    maker, data_dir, extractor = setup
+    with maker() as session:
+        report = run_pipeline(session, run_date=DAY, data_dir=data_dir, ai_limit=0)
+        assert report["status"] == "completed"
+        assert report["steps"]["ai"]["candidates"] == 0
+        assert report["steps"]["ai"]["processed"] == 0
+        assert extractor.calls == 0
+        # El pipeline determinista continúa aunque la IA no procese nada.
+        assert report["steps"]["scoring"]["leads"] == 3
+        assert session.scalar(sa.select(sa.func.count()).select_from(Assignment)) == 3
+
+
+def test_11_ai_limit_no_rompe_idempotencia(setup):
+    maker, data_dir, extractor = setup
+    with maker() as session:
+        first = run_pipeline(session, run_date=DAY, data_dir=data_dir, ai_limit=10)
+        assert first["steps"]["ai"]["processed"] == 1
+        assert extractor.calls == 1
+        second = run_pipeline(session, run_date=DAY, data_dir=data_dir, ai_limit=10)
+        assert second["status"] == "completed"
+        assert second["steps"]["ai"]["reused"] == 1
+        assert extractor.calls == 1  # la IA no se rellamó

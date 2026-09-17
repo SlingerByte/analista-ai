@@ -270,3 +270,139 @@ def test_force_tras_error_recupera_la_fila(factory):
         assert recovered.extraction.extraction_id == failed.extraction.extraction_id
         assert recovered.extraction.status == STATUS_SUCCESS
         assert recovered.extraction.error is None
+
+
+# --- Un error no debe desplazar una extracción exitosa previa ------------------
+
+
+def _append_message(session, conversation_id: str, text: str) -> None:
+    """Cambia el transcript → nuevo input_hash → fuerza una fila nueva."""
+    conversation = session.get(Conversation, conversation_id)
+    conversation.messages = list(conversation.messages or []) + [
+        {"seq": 99, "sender": "cliente", "hour": "", "text": text}]
+    session.flush()
+
+
+def test_success_then_error_keeps_previous_success_current(factory):
+    with factory() as session:
+        ok = process_conversation(session, "CONV-00001", FakeSuccessExtractor())
+        assert ok.extraction.is_current is True
+        _append_message(session, "CONV-00001", "mensaje nuevo para reextraer")
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        assert err.extraction.status == STATUS_ERROR
+        session.refresh(ok.extraction)
+        # El error queda registrado (trazabilidad) pero NO es current.
+        assert err.extraction.is_current is False
+        # La success previa sigue siendo la extracción funcional.
+        assert ok.extraction.is_current is True
+        assert get_current_extraction(session, "CONV-00001").extraction_id == (
+            ok.extraction.extraction_id)
+        # El error no alimenta las señales del lead.
+        assert all(row.status == STATUS_SUCCESS
+                   for row in lead_extractions(session, "LD-00001"))
+
+
+def test_success_then_success_replaces_current(factory):
+    with factory() as session:
+        first = process_conversation(session, "CONV-00001", FakeSuccessExtractor())
+        _append_message(session, "CONV-00001", "otro mensaje")
+        second = process_conversation(session, "CONV-00001", FakeSuccessExtractor())
+        session.refresh(first.extraction)
+        assert second.extraction.is_current is True
+        assert first.extraction.is_current is False
+
+
+def test_error_without_prior_records_but_no_signals(factory):
+    with factory() as session:
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        assert err.extraction.status == STATUS_ERROR
+        assert err.extraction.is_current is False
+        assert get_current_extraction(session, "CONV-00001") is None
+        assert lead_extractions(session, "LD-00001") == []
+
+
+def test_error_then_success_becomes_current(factory):
+    with factory() as session:
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        assert err.extraction.is_current is False
+        ok = process_conversation(
+            session, "CONV-00001", FakeSuccessExtractor(), force=True)
+        assert ok.extraction.status == STATUS_SUCCESS
+        assert ok.extraction.is_current is True
+        assert get_current_extraction(session, "CONV-00001") is not None
+
+
+class _FailForOrphan(FakeSuccessExtractor):
+    def extract(self, conversation):
+        if conversation.conversation_id == "CONV-9ORPHAN":
+            self.calls += 1
+            return ExtractionOutcome(
+                conversation_id=conversation.conversation_id,
+                provider=self.provider, model=self.model,
+                success=False, schema_valid=False, latency_ms=5,
+                error="network error: URLError")
+        return super().extract(conversation)
+
+
+def test_processed_ids_excludes_errors(factory):
+    extractor = _FailForOrphan()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=10)
+    assert report["processed"] == 2
+    assert report["errors"] == 1
+    assert report["processed_ids"] == ["CONV-00001"]
+
+
+
+# --- Límite de IA: --ai-limit cuenta conversaciones seleccionadas -------------
+# El fixture crea 2 conversaciones (CONV-00001, CONV-9ORPHAN). El proveedor es
+# un fake: no hay llamadas reales a Groq/Ollama.
+
+
+def test_process_pending_limit_one(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=1)
+    assert report["candidates"] == 1
+    assert report["processed"] == 1
+    assert extractor.calls == 1
+
+
+def test_process_pending_limit_zero_no_calls(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=0)
+    assert report["candidates"] == 0
+    assert report["processed"] == 0
+    assert extractor.calls == 0
+
+
+def test_process_pending_limit_larger_than_pending(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=10)
+    # Solo se procesan las pendientes disponibles; sin errores artificiales.
+    assert report["candidates"] == 2
+    assert report["processed"] == 2
+    assert report["failed"] == 0
+    assert extractor.calls == 2
+
+
+def test_process_pending_without_limit_processes_all(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=None)
+    assert report["candidates"] == 2
+    assert report["processed"] == 2
+    assert extractor.calls == 2
+
+
+def test_process_pending_reuses_without_provider_calls(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        process_pending(session, extractor, limit=10)
+        assert extractor.calls == 2
+        second = process_pending(session, extractor, limit=10)
+        assert second["reused"] == 2
+        assert second["processed"] == 2
+        assert extractor.calls == 2  # idempotencia: no se rellama al proveedor

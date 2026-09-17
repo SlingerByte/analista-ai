@@ -15,7 +15,7 @@ def _conversation() -> ConversationInput:
 
 
 def test_prompt_version_is_defined():
-    assert EXTRACTION_PROMPT_VERSION == "v7"
+    assert EXTRACTION_PROMPT_VERSION == "v8"
 
 
 def test_prompt_has_system_and_user_messages():

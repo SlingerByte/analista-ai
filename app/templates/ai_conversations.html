@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conversaciones analizadas | {{ app_name }}</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f1f5f9; color: #0f172a; }
+      header { background: #0f172a; color: #e2e8f0; padding: 1rem 2rem; }
+      header h1 { margin: 0; font-size: 1.25rem; }
+      header p { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.9rem; }
+      main { max-width: 62rem; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+      form.filters { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+                     padding: 0.75rem 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;
+                     align-items: end; margin: 1rem 0; }
+      form.filters label { font-size: 0.8rem; color: #475569; display: grid; gap: 0.25rem; }
+      input, select { padding: 0.35rem 0.5rem; font-size: 0.9rem; }
+      .row { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+             padding: 0.9rem 1.1rem; margin-bottom: 0.75rem; }
+      .row h3 { margin: 0 0 0.15rem; font-size: 1rem; }
+      .row .meta { color: #475569; font-size: 0.85rem; }
+      .signals { margin: 0.5rem 0 0.25rem; font-size: 0.85rem; color: #334155; }
+      .signals span { display: inline-block; margin-right: 1rem; }
+      .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px;
+               font-weight: 700; font-size: 0.75rem; border: 2px solid; }
+      .badge-alta { color: #991b1b; border-color: #991b1b; background: #fee2e2; }
+      .badge-media { color: #92400e; border-color: #92400e; background: #fef3c7; }
+      .badge-baja { color: #1e40af; border-color: #1e40af; background: #dbeafe; }
+      .badge-informativa { color: #475569; border-color: #475569; background: #f1f5f9; }
+      .badge-analizada { color: #166534; border-color: #166534; background: #dcfce7;
+                         margin-left: 0.5rem; }
+      .empty { background: #fff; border: 1px dashed #94a3b8; border-radius: 0.5rem;
+               padding: 2rem; text-align: center; color: #475569; }
+      nav.pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Conversaciones analizadas</h1>
+      <p>{{ app_name }} · {{ user.email }}{% if is_admin %} · Supervisión global{% endif %}</p>
+    </header>
+    <main>
+      <p><a href="/supervision">← Volver a Supervisión</a></p>
+      <p style="color:#475569;font-size:0.9rem;">
+        Conversaciones con extracción IA <strong>vigente y exitosa</strong> dentro de tu alcance.
+        «Analizada» indica que la extracción se procesó y validó por esquema; no afirma que la
+        interpretación sea correcta — esta vista es para auditoría humana.
+      </p>
+      <form class="filters" method="get" action="/ai/conversations">
+        <label>Buscar
+          <input type="text" name="search" value="{{ filters.search }}"
+                 placeholder="CONV-id, lead o cliente" />
+        </label>
+        <label>Intención
+          <select name="intent">
+            {% for value, label in intent_filters %}
+            <option value="{{ value }}" {% if filters.intent == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Señal
+          <select name="signal">
+            {% for value, label in signal_filters %}
+            <option value="{{ value }}" {% if filters.signal == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Estado de señales
+          <select name="state">
+            {% for value, label in state_filters %}
+            <option value="{{ value }}" {% if filters.state == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Orden
+          <select name="order">
+            {% for value, label in order_options %}
+            <option value="{{ value }}" {% if filters.order == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">Filtrar</button>
+        <a href="/ai/conversations">Todos</a>
+      </form>
+
+      {% if rows %}
+        {% for row in rows %}
+        <div class="row">
+          <h3>{{ row.conversation_id }} <span class="badge badge-analizada">Analizada</span></h3>
+          <div class="meta">
+            {{ row.customer_name or 'Sin nombre' }}
+            {% if row.lead_id %} · Lead: {{ row.lead_id }}{% else %} · Sin lead{% endif %}
+            {% if is_admin and row.company_id %} · Empresa: {{ row.company_id }}{% endif %}
+          </div>
+          <div class="meta">
+            Analizada: {{ row.analyzed_at.strftime('%d %b %Y %H:%M') if row.analyzed_at else 'Desconocido' }}
+          </div>
+          <div class="signals">
+            <span>Modelo IA: <strong>{{ row.model or 'No determinado' }}</strong></span>
+            <span>Intención de compra: {% if row.intent %}<span class="badge badge-{{ row.intent }}">{{ row.intent|capitalize }}</span>{% else %}No determinada{% endif %}</span>
+            <span>Cita: {% if row.cita is none %}No determinado{% elif row.cita %}Sí{% else %}No{% endif %}</span>
+            <span>Cotización: {% if row.cotizacion is none %}No determinado{% elif row.cotizacion %}Sí{% else %}No{% endif %}</span>
+          </div>
+          <div class="signals">
+            {% if row.lead_id %}
+            <span>Banda del lead: <strong>{{ row.lead_band or 'Sin score' }}</strong></span>
+            {% if not row.assigned %}<span>Asignación: <strong>Sin asignación</strong></span>{% endif %}
+            {% endif %}
+            <span>Prompt: <strong>{{ row.prompt_version or 'Desconocido' }}</strong></span>
+            <span>Schema: {{ row.schema_version or 'Desconocido' }}</span>
+          </div>
+          <div class="signals">
+            <span>Presupuesto: {{ '${:,.0f}'.format(row.presupuesto) if row.presupuesto is not none else 'No determinado' }}</span>
+            <span>Cuota inicial: {{ '${:,.0f}'.format(row.cuota_inicial) if row.cuota_inicial is not none else 'No determinado' }}</span>
+            <span>Forma de pago: {{ row.forma_pago or 'No determinado' }}</span>
+            <span>Objeción: {{ row.objecion or 'No determinado' }}</span>
+          </div>
+          <p style="margin:0.5rem 0 0;"><a href="/ai/conversations/{{ row.conversation_id }}{{ detail_query }}">Ver análisis</a></p>
+        </div>
+        {% endfor %}
+
+        <nav class="pager" aria-label="Paginación">
+          {% if pagination.prev_url %}<a href="{{ pagination.prev_url }}">← Anterior</a>{% endif %}
+          <span>Página {{ pagination.page }} de {{ pagination.total_pages }} ({{ pagination.total }} conversaciones)</span>
+          {% if pagination.next_url %}<a href="{{ pagination.next_url }}">Siguiente →</a>{% endif %}
+        </nav>
+      {% else %}
+      <div class="empty">No hay conversaciones analizadas para los criterios seleccionados.</div>
+      {% endif %}
+    </main>
+  </body>
+</html>

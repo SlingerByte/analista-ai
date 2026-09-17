@@ -15,6 +15,8 @@ Responde una sola pregunta operativa:
 ingesta → normalización → deduplicación → vinculación de conversaciones
        → extracción IA → validación de evidencia → scoring
        → asignación a asesores → gestión diaria (dashboard)
+       → cierre (Cerrado / Perdido / Descartado) → liberación de capacidad
+       → promoción de overflow en el siguiente ciclo de asignación
 ```
 
 Cada etapa es determinista e idempotente y se ejecuta con un único comando:
@@ -114,10 +116,35 @@ prioridad (comercial + urgencia) por separado de la calidad.
   y sección **Pendientes de asignación** (overflow) que muestra empresa, POS,
   cliente, modelo, prioridad, score, fecha de registro y motivo
   (`sin_capacidad`). Incluye la acción **Reintentar asignación** para
-  supervisor/admin.
+  supervisor/admin, y contadores del ciclo de vida (abiertos / cerrados /
+  perdidos / descartados).
 - La asignación es **determinista**, respeta `empresa + punto de venta`, nunca
   mueve un lead a otro POS y solo usa asesores activos. El reintento reutiliza
   el mismo algoritmo y es **idempotente**.
+- **Capacidad dinámica**: el cupo de un asesor es
+  `daily_capacity − leads abiertos con asignación operativa vigente`. Los estados
+  terminales no consumen capacidad. No hay contador persistido.
+- **Continuidad**: un lead abierto que ya tiene asesor vigente lo conserva en la
+  siguiente corrida (no se rebalancea por capacidad).
+
+## Ciclo de vida del lead
+
+- Estados **abiertos**: `Sin gestión`, `Contactado`, `No contesta`,
+  `Cotización enviada`, `En proceso`.
+- Estados **terminales**: `Cerrado` (conversión positiva), `Perdido`
+  (oportunidad válida no convertida) y `Descartado` (no debe continuar como
+  oportunidad). `Perdido` y `Descartado` **no** son equivalentes.
+- El cierre es una **transición de estado** desde el detalle del lead
+  (`POST /leads/{lead_id}/status`, con motivo). Registra `closed_at` y
+  `close_reason` en `leads`; **nunca borra** lead, conversaciones, extracciones,
+  scores ni asignaciones.
+- Un lead terminal **no se reabre** y **no vuelve a ser candidato** de asignación.
+- Al cerrarse libera su cupo lógico: en el siguiente ciclo (`pipeline` o
+  **Reintentar asignación**) ese cupo puede asignarse a un lead de `overflow`
+  compatible (misma empresa y POS, asesor activo, orden `queue_score DESC,
+  lead_id ASC`). No hay colas externas.
+- La definición central de estados vive en `app/lead_status.py`
+  (`is_lead_open` / `is_lead_terminal`); no hay listas duplicadas.
 
 ## Ejecución local
 
@@ -152,8 +179,8 @@ admin.demo@motos.local      / demo-admin-123        → global
 ## Tests
 
 ```bash
-uv run pytest         # 241 passed
-uv run alembic check  # No new upgrade operations detected
+uv run pytest         # 525 passed
+uv run alembic check  # No new upgrade operations detected (requiere BD accesible)
 ```
 
 Los tests no necesitan PostgreSQL ni proveedores externos de IA (Ollama/OpenRouter).

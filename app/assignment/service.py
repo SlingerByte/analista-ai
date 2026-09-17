@@ -34,13 +34,13 @@ from app.integrity import (
     check_assignment_organization,
     point_of_sale_owners,
 )
+from app.lead_status import is_lead_terminal
 from app.models import Advisor, Assignment, IdentityCluster, IdentityMember, Lead, LeadScore
 
 STRATEGY_VERSION = "v1"
 STATUS_ASSIGNED = "assigned"
 STATUS_OVERFLOW = "overflow"
 OVERFLOW_REASON = "sin_capacidad"
-DISCARDED_STATUS = "Descartado"
 REVIEWED_DISCARDED = "reviewed_discarded"
 
 
@@ -86,9 +86,18 @@ def plan_assignments(
     advisors: list[AdvisorCapacity],
     *,
     strategy_version: str = STRATEGY_VERSION,
+    occupied_by_advisor: dict[str, int] | None = None,
+    existing_advisor: dict[str, str] | None = None,
 ) -> list[AssignmentDecision]:
-    """Decisiones de asignación. Pura y determinista."""
+    """Decisiones de asignación. Pura y determinista.
+
+    ``occupied_by_advisor``: leads abiertos que ya ocupan cupo del asesor
+    (asignación operativa vigente). ``existing_advisor``: asesor vigente por
+    lead abierto, para conservar continuidad (no reasignar por capacidad).
+    """
     _ = strategy_version
+    occupied = dict(occupied_by_advisor or {})
+    existing = dict(existing_advisor or {})
     by_group: dict[tuple[str, str], list[LeadCandidate]] = {}
     for candidate in candidates:
         by_group.setdefault((candidate.company_id, candidate.point_of_sale_id), []).append(
@@ -111,8 +120,30 @@ def plan_assignments(
             ),
             key=lambda a: a.advisor_id,
         )
-        remaining = {advisor.advisor_id: advisor.daily_capacity for advisor in pool}
+        pool_ids = {advisor.advisor_id for advisor in pool}
+        # Capacidad disponible = cupo diario − leads abiertos que ya ocupan.
+        remaining = {
+            advisor.advisor_id: max(
+                0, advisor.daily_capacity - occupied.get(advisor.advisor_id, 0)
+            )
+            for advisor in pool
+        }
         for rank, candidate in enumerate(group, start=1):
+            keep = existing.get(candidate.lead_id)
+            if keep in pool_ids:
+                # Continuidad: un lead abierto conserva a su asesor vigente.
+                decisions.append(
+                    AssignmentDecision(
+                        lead_id=candidate.lead_id,
+                        company_id=company_id,
+                        point_of_sale_id=point_of_sale_id,
+                        advisor_id=keep,
+                        priority_rank=rank,
+                        status=STATUS_ASSIGNED,
+                        reason="continuidad: conserva el asesor vigente",
+                    )
+                )
+                continue
             chosen = _pick_advisor(pool, remaining)
             if chosen is None:
                 decisions.append(
@@ -160,7 +191,8 @@ def plan_assignments(
 def _eligible_candidates(
     session: Session, company_ids: set[str] | None = None
 ) -> list[LeadCandidate]:
-    """Leads gestionables con score vigente, sin Descartado ni miembros no canónicos."""
+    """Leads gestionables con score vigente: sin estados terminales ni
+    miembros no canónicos de identidad."""
     scores = session.scalars(
         sa.select(LeadScore).where(LeadScore.is_current.is_(True))
     ).all()
@@ -183,10 +215,7 @@ def _eligible_candidates(
         ).all()
     )
 
-    statement = sa.select(Lead).where(
-        Lead.lead_id.in_(latest),
-        Lead.status != DISCARDED_STATUS,
-    )
+    statement = sa.select(Lead).where(Lead.lead_id.in_(latest))
     if company_ids:
         statement = statement.where(Lead.company_id.in_(company_ids))
     leads = session.scalars(statement).all()
@@ -200,7 +229,7 @@ def _eligible_candidates(
             else float("-inf"),
         )
         for lead in leads
-        if lead.lead_id not in non_canonical
+        if lead.lead_id not in non_canonical and not is_lead_terminal(lead.status)
     ]
 
 
@@ -220,6 +249,65 @@ def _advisor_capacities(
         )
         for row in session.scalars(statement).all()
     ]
+
+
+def _operative_assignments(
+    session: Session, company_ids: set[str] | None = None
+) -> dict[str, Assignment]:
+    """Asignación operativa vigente por lead: la última ``is_current``.
+
+    Convención del proyecto: la vigente es ``is_current=True``; si coexisten
+    varias fechas, la más reciente (``run_date`` y luego ``assignment_id``).
+    """
+    statement = sa.select(Assignment).where(Assignment.is_current.is_(True))
+    if company_ids:
+        statement = statement.where(Assignment.company_id.in_(company_ids))
+    latest: dict[str, Assignment] = {}
+    for row in session.scalars(
+        statement.order_by(Assignment.run_date.asc(), Assignment.assignment_id.asc())
+    ).all():
+        latest[row.lead_id] = row
+    return latest
+
+
+def _open_load_by_advisor(
+    session: Session, operative: dict[str, Assignment]
+) -> dict[str, int]:
+    """Cupo ocupado por asesor = leads ABIERTOS con asignación operativa vigente.
+
+    Los leads terminales (Cerrado/Perdido/Descartado) no ocupan capacidad.
+    """
+    lead_ids = [
+        lead_id
+        for lead_id, row in operative.items()
+        if row.status == STATUS_ASSIGNED and row.advisor_id is not None
+    ]
+    statuses: dict[str, str | None] = {}
+    if lead_ids:
+        statuses = {
+            lead_id: status
+            for lead_id, status in session.execute(
+                sa.select(Lead.lead_id, Lead.status).where(Lead.lead_id.in_(lead_ids))
+            ).all()
+        }
+    load: dict[str, int] = {}
+    for lead_id, row in operative.items():
+        if row.status != STATUS_ASSIGNED or row.advisor_id is None:
+            continue
+        if is_lead_terminal(statuses.get(lead_id)):
+            continue
+        load[row.advisor_id] = load.get(row.advisor_id, 0) + 1
+    return load
+
+
+def advisor_open_load(session: Session, advisor_id: str) -> int:
+    """Leads abiertos con asignación vigente del asesor (ocupa capacidad)."""
+    return _open_load_by_advisor(session, _operative_assignments(session)).get(advisor_id, 0)
+
+
+def advisor_available_capacity(session: Session, advisor: Advisor) -> int:
+    """Cupo disponible = daily_capacity − leads abiertos asignados vigentes."""
+    return max(0, advisor.daily_capacity - advisor_open_load(session, advisor.advisor_id))
 
 
 def _assert_decisions_organization(
@@ -325,8 +413,19 @@ def run_assignment(
     scope = set(company_ids) if company_ids else None
     candidates = _eligible_candidates(session, company_ids=scope)
     advisors = _advisor_capacities(session, company_ids=scope)
+    operative = _operative_assignments(session, company_ids=scope)
+    occupied = _open_load_by_advisor(session, operative)
+    existing = {
+        lead_id: row.advisor_id
+        for lead_id, row in operative.items()
+        if row.status == STATUS_ASSIGNED and row.advisor_id is not None
+    }
     decisions = plan_assignments(
-        candidates, advisors, strategy_version=strategy_version
+        candidates,
+        advisors,
+        strategy_version=strategy_version,
+        occupied_by_advisor=occupied,
+        existing_advisor=existing,
     )
     _assert_decisions_organization(session, decisions)
     _persist_decisions(session, run_date, decisions, strategy_version, scope)
@@ -348,8 +447,19 @@ def retry_assignment(
     scope = set(company_ids) if company_ids else None
     candidates = _eligible_candidates(session, company_ids=scope)
     advisors = _advisor_capacities(session, company_ids=scope)
+    operative = _operative_assignments(session, company_ids=scope)
+    occupied = _open_load_by_advisor(session, operative)
+    existing = {
+        lead_id: row.advisor_id
+        for lead_id, row in operative.items()
+        if row.status == STATUS_ASSIGNED and row.advisor_id is not None
+    }
     decisions = plan_assignments(
-        candidates, advisors, strategy_version=strategy_version
+        candidates,
+        advisors,
+        strategy_version=strategy_version,
+        occupied_by_advisor=occupied,
+        existing_advisor=existing,
     )
     _assert_decisions_organization(session, decisions)
 

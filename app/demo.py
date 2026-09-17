@@ -100,6 +100,21 @@ def main(argv: list[str] | None = None) -> None:
         f"{steps['assignment'].get('assigned', '?')} assigned, "
         f"{steps['assignment'].get('overflow', '?')} overflow)"
     )
+    ai = steps.get("ai", {})
+    if ai.get("status") == "skipped":
+        print(f"[..] IA: omitida ({ai.get('reason', 'no disponible')})")
+    elif not ai.get("candidates"):
+        print("[..] IA: no hay conversaciones pendientes para analizar.")
+    else:
+        limit_note = (f" · límite {args.ai_limit}"
+                      if args.ai_limit is not None else "")
+        print(
+            f"[OK] IA {ai.get('provider')}/{ai.get('model')}{limit_note}: "
+            f"{ai.get('candidates', '?')} seleccionadas, "
+            f"{ai.get('processed', '?')} procesadas, "
+            f"{ai.get('reused', '?')} reutilizadas, "
+            f"{ai.get('failed', '?')} fallidas"
+        )
 
 def _serve(host: str, port: int) -> None:
     from app.config import get_settings  # noqa: F401 - valida configuración

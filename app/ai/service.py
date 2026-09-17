@@ -212,6 +212,11 @@ def process_conversation(
         fields = None
         raw_response = {"raw_text": outcome.raw_text} if outcome.raw_text else None
 
+    # Solo una extracción exitosa es "funcional" (is_current). Un intento
+    # fallido se registra para trazabilidad pero NO desplaza a una success
+    # previa: si la reextracción falla, el scoring conserva las señales buenas.
+    make_current = status == STATUS_SUCCESS
+
     if force:
         # El unique (conversation_id, input_hash) impide duplicar el mismo
         # input efectivo: `force` actualiza la fila existente en vez de
@@ -224,10 +229,11 @@ def process_conversation(
             same.fields = fields
             same.raw_response = raw_response
             same.latency_ms = outcome.latency_ms
-            same.is_current = True
+            same.is_current = make_current
             extraction = same
             session.flush()
-            _mark_current(session, conversation_id, extraction.extraction_id)
+            if make_current:
+                _mark_current(session, conversation_id, extraction.extraction_id)
             session.commit()
             return ProcessResult(
                 conversation_id=conversation_id,
@@ -245,9 +251,10 @@ def process_conversation(
         reusable.fields = fields
         reusable.raw_response = raw_response
         reusable.latency_ms = outcome.latency_ms
-        reusable.is_current = True
+        reusable.is_current = make_current
         session.flush()
-        _mark_current(session, conversation_id, reusable.extraction_id)
+        if make_current:
+            _mark_current(session, conversation_id, reusable.extraction_id)
         session.commit()
         return ProcessResult(
             conversation_id=conversation_id,
@@ -269,12 +276,13 @@ def process_conversation(
         fields=fields,
         raw_response=raw_response,
         latency_ms=outcome.latency_ms,
-        is_current=True,
+        is_current=make_current,
     )
 
     session.add(extraction)
     session.flush()
-    _mark_current(session, conversation_id, extraction.extraction_id)
+    if make_current:
+        _mark_current(session, conversation_id, extraction.extraction_id)
     session.commit()
     return ProcessResult(
         conversation_id=conversation_id,
@@ -300,6 +308,7 @@ def process_pending(
     ids = list(session.scalars(query).all())
 
     processed = reused = errors = failed = 0
+    processed_ids: list[str] = []
     failures: list[dict] = []
     for conversation_id in ids:
         try:
@@ -310,6 +319,10 @@ def process_pending(
             failures.append({"conversation_id": conversation_id, "error": str(exc)[:300]})
             continue
         processed += 1
+        if result.extraction.status == STATUS_SUCCESS:
+            # Solo las extracciones exitosas (nuevas o reutilizadas) alimentan
+            # el rescoring; un intento fallido no debe disparar recálculo.
+            processed_ids.append(conversation_id)
         if result.reused:
             reused += 1
         elif result.extraction.status == STATUS_ERROR:
@@ -326,6 +339,8 @@ def process_pending(
         "errors": errors,
         "failed": failed,
         "failures": failures,
+        # Aditivo: conversaciones con extracción exitosa (nuevas o reutilizadas).
+        "processed_ids": processed_ids,
     }
 
 

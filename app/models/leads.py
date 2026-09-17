@@ -41,6 +41,12 @@ class Lead(Base):
     status: Mapped[str | None] = mapped_column(sa.Text, nullable=True, index=True)
     customer_name: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
+    # Cierre operativo (transición terminal): se conserva el registro del lead.
+    closed_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
+    )
+    close_reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+
     phone_raw: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     phone_normalized: Mapped[str | None] = mapped_column(sa.Text, nullable=True, index=True)
     email_raw: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

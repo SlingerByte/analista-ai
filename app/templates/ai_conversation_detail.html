@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Análisis {{ conversation.conversation_id }} | {{ app_name }}</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f1f5f9; color: #0f172a; }
+      header { background: #0f172a; color: #e2e8f0; padding: 1rem 2rem; }
+      header h1 { margin: 0; font-size: 1.25rem; }
+      header p { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.9rem; }
+      main { max-width: 60rem; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+      section { background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+                padding: 1rem 1.25rem; margin-bottom: 1rem; }
+      h2 { margin-top: 0; font-size: 1.05rem; }
+      dl { display: grid; grid-template-columns: 13rem 1fr; gap: 0.35rem 1rem; margin: 0; }
+      dt { color: #475569; font-size: 0.85rem; }
+      dd { margin: 0; font-weight: 600; }
+      .evidence { color: #475569; font-size: 0.8rem; font-weight: 400; font-style: italic; }
+      .unknown { color: #94a3b8; font-weight: 400; font-style: italic; }
+      .chat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.75rem; }
+      .msg { margin: 0.4rem 0; padding: 0.4rem 0.6rem; border-radius: 0.5rem; max-width: 85%; }
+      .msg-meta { font-size: 0.75rem; color: #64748b; margin-bottom: 0.15rem; }
+      .msg-text { white-space: pre-wrap; word-break: break-word; }
+      .msg-cliente { background: #dbeafe; margin-left: auto; }
+      .msg-asesor { background: #e2e8f0; margin-right: auto; }
+      .msg-otro { background: #fef3c7; margin-right: auto; }
+      .meta-list { font-size: 0.85rem; color: #475569; margin: 0; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>{{ conversation.conversation_id }}</h1>
+      <p>
+        {{ lead.customer_name if lead and lead.customer_name else 'Sin nombre' }}
+        {% if conversation.lead_id %} · Lead: {{ conversation.lead_id }}{% else %} · Sin lead{% endif %}
+        {% if is_admin and conversation.company_id %} · Empresa: {{ conversation.company_id }}{% endif %}
+      </p>
+    </header>
+    <main>
+      <p>
+        <a href="{{ back_url }}">← Volver a Conversaciones analizadas</a>
+        {% if conversation.lead_id %} · <a href="/leads/{{ conversation.lead_id }}">Ver lead</a>{% endif %}
+      </p>
+
+      <section>
+        <h2>Conversación</h2>
+        {% if messages %}
+        <div class="chat">
+          {% for msg in messages %}
+          <div class="msg msg-{{ msg.sender_class }}">
+            <div class="msg-meta">{{ msg.sender_label | e }}{% if msg.hour %} · {{ msg.hour | e }}{% endif %}</div>
+            <div class="msg-text">{{ msg.text | e }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="unknown">Sin mensajes registrados.</p>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Análisis IA</h2>
+        {% if extraction %}
+        <dl>
+          <dt>Modelo mencionado</dt><dd>{{ fields.model_interes or 'No determinado' }}{% if fields.model_interes_evidence %}<br><span class="evidence">Evidencia: «{{ fields.model_interes_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Intención de compra</dt><dd>{{ fields.intencion_compra or 'No determinado' }}{% if fields.intencion_compra_evidence %}<br><span class="evidence">Evidencia: «{{ fields.intencion_compra_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Presupuesto</dt><dd>{{ fields.presupuesto if fields.presupuesto is not none else 'No determinado' }}{% if fields.presupuesto_evidence %}<br><span class="evidence">Evidencia: «{{ fields.presupuesto_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Cuota inicial</dt><dd>{{ fields.cuota_inicial if fields.cuota_inicial is not none else 'No determinado' }}{% if fields.cuota_inicial_evidence %}<br><span class="evidence">Evidencia: «{{ fields.cuota_inicial_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Forma de pago</dt><dd>{{ fields.forma_pago or 'No determinado' }}{% if fields.forma_pago_evidence %}<br><span class="evidence">Evidencia: «{{ fields.forma_pago_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Objeción</dt><dd>{{ fields.objecion or 'No determinado' }}{% if fields.objecion_evidence %}<br><span class="evidence">Evidencia: «{{ fields.objecion_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Cita</dt><dd>{% if fields.solicitud_cita is none %}No determinado{% elif fields.solicitud_cita %}Sí{% else %}No{% endif %}{% if fields.solicitud_cita_evidence %}<br><span class="evidence">Evidencia: «{{ fields.solicitud_cita_evidence | e }}»</span>{% endif %}</dd>
+          <dt>Cotización</dt><dd>{% if fields.solicitud_cotizacion is none %}No determinado{% elif fields.solicitud_cotizacion %}Sí{% else %}No{% endif %}{% if fields.solicitud_cotizacion_evidence %}<br><span class="evidence">Evidencia: «{{ fields.solicitud_cotizacion_evidence | e }}»</span>{% endif %}</dd>
+        </dl>
+        <h3 style="font-size:0.9rem;color:#334155;margin-bottom:0.25rem;">Trazabilidad</h3>
+        <p class="meta-list">
+          Proveedor: {{ extraction.provider or 'Desconocido' }} ·
+          Modelo: {{ extraction.model_name or 'Desconocido' }} ·
+          Versión del prompt: {{ extraction.prompt_version }} ·
+          Esquema: {{ extraction.schema_version }} ·
+          Estado: {{ extraction.status }}
+          {% if extraction.latency_ms is not none %}· Latencia: {{ extraction.latency_ms }} ms{% endif %}
+        </p>
+        {% else %}
+        <p class="unknown">Sin extracción IA vigente y exitosa para esta conversación.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

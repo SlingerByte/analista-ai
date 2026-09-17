@@ -29,7 +29,7 @@ def _validate(value: float | None, evidence: str | None,
 
 
 def test_prompt_is_v3_with_budget_rule():
-    assert EXTRACTION_PROMPT_VERSION == "v7"
+    assert EXTRACTION_PROMPT_VERSION == "v8"
     assert "presupuesto != dinero disponible" in SYSTEM_PROMPT
 
 

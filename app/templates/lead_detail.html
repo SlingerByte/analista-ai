@@ -43,7 +43,7 @@
   <body>
     <header>
       <h1>{{ lead.customer_name or 'Sin nombre' }} <span class="badge badge-{{ score.band.lower() if score and score.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ score.band if score and score.band else 'Sin score' }}</span></h1>
-      <p>{{ lead.lead_id }} · ranking #{{ assignment.priority_rank }} · {{ advisor_name }}{% if assignment.advisor_id %} ({{ assignment.advisor_id }}){% endif %}</p>
+      <p>{{ lead.lead_id }}{% if assignment %} · ranking #{{ assignment.priority_rank }}{% endif %} · {{ advisor_name }}{% if assignment and assignment.advisor_id %} ({{ assignment.advisor_id }}){% endif %}</p>
     </header>
     <main>
       <p><a href="{{ back_url }}">← {{ back_label }}</a></p>
@@ -58,6 +58,79 @@
           <dt>Canal</dt><dd>{{ lead.channel or 'Desconocido' }}</dd>
         </dl>
       </section>
+      <section>
+        <h2>Gestión del lead</h2>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;padding:0.6rem 0.8rem;margin:0.25rem 0 0.75rem;">
+          <p style="margin:0 0 0.35rem;font-size:0.85rem;color:#334155;">
+            <strong>Cerrado</strong> = resultado exitoso ·
+            <strong>Perdido</strong> = oportunidad válida que terminó sin conversión ·
+            <strong>Descartado</strong> = no era una oportunidad que debiera seguir gestionándose.
+          </p>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">
+            Esto permite diferenciar correctamente las métricas: <strong>Cerrado</strong> →
+            conversiones; <strong>Perdido</strong> → oportunidades no convertidas;
+            <strong>Descartado</strong> → calidad/limpieza del lead. No debemos mezclar
+            <strong>Descartado</strong> con <strong>Perdido</strong>, porque hacerlo
+            distorsionaría cualquier métrica de conversión.
+          </p>
+        </div>
+        <dl>
+          <dt>Estado de gestión</dt>
+          <dd>{{ lead.status or 'Desconocido' }}{% if is_terminal %} <span class="badge badge-alta">Terminal</span>{% endif %}</dd>
+          {% if is_terminal %}
+          <dt>Cerrado</dt><dd>{{ lead.closed_at.strftime('%d/%m/%Y %H:%M') if lead.closed_at else 'Desconocido' }}</dd>
+          <dt>Motivo de cierre</dt><dd>{{ lead.close_reason or 'Desconocido' }}</dd>
+          {% endif %}
+        </dl>
+        <form method="post" action="/leads/{{ lead.lead_id }}/status" style="margin-top:0.75rem;">
+          <label>Estado
+            <select name="status">
+              {% for option in open_statuses %}
+              <option value="{{ option }}" {% if lead.status == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+              {% for option in terminal_statuses %}
+              <option value="{{ option }}" {% if lead.status == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label style="margin-left:0.75rem;">Motivo de cierre
+            <select name="close_reason">
+              <option value="">(solo al cerrar)</option>
+              {% for reason in close_reasons %}
+              <option value="{{ reason }}" {% if lead.close_reason == reason %}selected{% endif %}>{{ reason }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="submit" style="margin-left:0.75rem;">Guardar</button>
+        </form>
+        <p style="color:#475569;font-size:0.8rem;margin:0.5rem 0 0;">
+          El registro del lead y su historial (conversaciones, extracciones, scores y
+          asignaciones) se conservan; cerrar no elimina datos. Un lead terminal no se
+          puede reabrir y deja de ocupar capacidad.
+        </p>
+      </section>
+      {% if model_inconsistencies %}
+      <section style="border:1px solid #f59e0b;background:#fffbeb;">
+        <h2 style="color:#92400e;">⚠️ Inconsistencia detectada</h2>
+        <p style="color:#78350f;font-size:0.85rem;margin:0.25rem 0 0.75rem;">
+          El CRM conserva el dato original registrado; la IA solo muestra lo detectado
+          en la conversación. El sistema <strong>no</strong> sobrescribe automáticamente
+          el modelo del lead.
+        </p>
+        {% for inc in model_inconsistencies %}
+        <div style="border-top:1px solid #fde68a;padding-top:0.6rem;{% if not loop.first %}margin-top:0.6rem;{% endif %}">
+          <dl>
+            <dt>Modelo registrado en CRM</dt><dd>{{ inc.crm_model }}</dd>
+            <dt>Modelo mencionado en conversación</dt><dd>{{ inc.ia_model }} <span class="evidence">({{ inc.conversation_id }})</span></dd>
+            <dt>Tipo</dt><dd>{{ inc.kind }}</dd>
+            {% if inc.evidence %}
+            <dt>Evidencia</dt><dd><span class="evidence">«{{ inc.evidence | e }}»</span></dd>
+            {% endif %}
+          </dl>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
       <section>
         <h2>Score</h2>
         {% if score %}

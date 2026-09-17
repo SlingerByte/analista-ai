@@ -107,7 +107,7 @@ def build_extractor(
         )
     if resolved == "local":
         return LocalExtractor(
-            base_url=settings.local_ai_agent_url,
+            base_url=settings.local_ai_ollama_url,
             model=settings.local_ai_model,
             timeout=settings.ai_timeout_seconds,
         )

@@ -1,61 +1,61 @@
-"""Proveedor `local`: habla con el Local AI Agent (127.0.0.1) que reenvía a Ollama.
+"""Proveedor `local`: IA local vía Ollama directo (mismo equipo).
 
-Reutiliza exactamente el mismo `SYSTEM_PROMPT` (`build_messages`), el mismo
-`schema` (`ExtractionResult.model_json_schema`) y la misma validación que
-Groq/Ollama/OpenRouter: aquí solo se resuelve el transporte HTTP.
+Preferimos FastAPI → Ollama → qwen2.5:3b, sin exigir levantar manualmente el
+Local AI Agent. Reutiliza `OllamaExtractor` (mismo `SYSTEM_PROMPT`, schema y
+validación); aquí solo se añade un diagnóstico amigable de disponibilidad.
 
-Flujo:
-    LocalExtractor -> POST {url}/analyze (messages + format) -> Local AI Agent
-        -> Ollama /api/chat -> JSON estructurado -> _validate_content()
+    LocalExtractor -> Ollama /api/chat -> JSON estructurado -> _validate_content()
 
-El agente es un proxy tonto; el prompt, el schema y la validación viven en la
-app. No expone Ollama directamente.
+Estados amigables (nunca exponen URLError/traceback):
+- Ollama no disponible (no instalado o no en ejecución).
+- Ollama instalado pero no en ejecución.
+- Modelo local no instalado (con la instrucción `ollama pull <modelo>`).
+
+El agente `scripts/local_ai_agent.py` se mantiene para el escenario de
+navegador/publicación; el backend no lo necesita.
 """
 
 from __future__ import annotations
 
-from app.ai.base import AIRequestError, BaseHTTPExtractor
-from app.ai.prompt import build_messages
-from app.ai.schema import ConversationInput, ExtractionResult
+import shutil
 
-DEFAULT_AGENT_URL = "http://127.0.0.1:8765"
+from app.ai.base import AIRequestError
+from app.ai.ollama import OllamaExtractor
+
+DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:3b"
 
 
-class LocalExtractor(BaseHTTPExtractor):
-    provider = "local"
+class LocalExtractor(OllamaExtractor):
+    """Ollama local con mensajes de disponibilidad orientados al usuario."""
 
-    def __init__(self, base_url: str, model: str | None, timeout: float) -> None:
-        super().__init__(model=model, timeout=timeout)
-        self.base_url = (base_url or DEFAULT_AGENT_URL).rstrip("/")
+    provider = "local"
 
     def availability(self) -> tuple[bool, str]:
         if not self.model:
-            return False, "LOCAL_AI_MODEL not configured"
+            return False, "IA local no configurada: falta LOCAL_AI_MODEL."
         try:
-            data = self._request_json("GET", f"{self.base_url}/health")
-        except AIRequestError as exc:
-            return False, f"local agent unreachable: {exc}"
-        except Exception as exc:  # noqa: BLE001
-            return False, f"local agent unreachable: {type(exc).__name__}"
-        if data.get("status") != "ok":
-            return False, "local agent unhealthy"
-        if data.get("ollama") is not True:
-            return False, f"ollama not available: {data.get('ollama')}"
+            data = self._request_json("GET", f"{self.base_url}/api/tags")
+        except AIRequestError:
+            if shutil.which("ollama"):
+                return False, (
+                    "Ollama está instalado pero no está en ejecución. "
+                    "Inícialo para usar IA local."
+                )
+            return False, (
+                "IA local no disponible: Ollama no está disponible en este "
+                "equipo. Instala Ollama o inicia el servicio para usar IA local."
+            )
+        except Exception:  # noqa: BLE001 - diagnóstico, nunca propaga el detalle
+            return False, "IA local no disponible en este equipo."
+
+        names = {item.get("name") for item in data.get("models", [])}
+        if self.model not in names and f"{self.model}:latest" not in names:
+            return False, (
+                f"Modelo local no disponible: el modelo {self.model} no está "
+                f"instalado. Ejecuta: ollama pull {self.model}"
+            )
         return True, "ok"
 
-    def _call(self, conversation: ConversationInput) -> str:
-        payload = {
-            "messages": build_messages(conversation),
-            "format": ExtractionResult.model_json_schema(),
-            "model": self.model,
-        }
-        data = self._request_json(
-            "POST", f"{self.base_url}/analyze", payload)
-        if data.get("ok") is not True:
-            raise AIRequestError(
-                f"agent error: {data.get('error') or 'unknown'}")
-        return data.get("result") or ""
 
-
-__all__ = ["LocalExtractor", "DEFAULT_AGENT_URL", "DEFAULT_MODEL"]
+__all__ = ["LocalExtractor", "DEFAULT_OLLAMA_URL", "DEFAULT_MODEL"]

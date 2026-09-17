@@ -8,7 +8,7 @@ from app.ai.schema import (
     ConversationInput,
 )
 
-EXTRACTION_PROMPT_VERSION = "v7"
+EXTRACTION_PROMPT_VERSION = "v8"
 
 SYSTEM_PROMPT = """\
 Eres un extractor de información estructurada de conversaciones comerciales de WhatsApp
@@ -32,8 +32,12 @@ No invención (prohibido inferir):
 - El precio de una moto mencionado por el asesor NO es presupuesto del cliente.
   Si el cliente no declara su presupuesto, presupuesto = null.
 - Que el asesor OFREZCA una cotización ("te envío la cotización") NO significa que
-  el cliente la solicitó. solicitud_cotizacion = true solo si el cliente la pide
-  explícitamente ("mándeme la cotización", "me la puede cotizar").
+  el cliente la solicitó. Pero solicitud_cotizacion = true cuando el cliente la
+  pide o ACEPTA recibirla explícitamente. Ejemplos TRUE: "mándeme la
+  cotización", "me la puede cotizar", "sí porfa, mándemela", "listo,
+  envíemela", "bueno, mándela y yo le digo", "mándela y yo le digo". Un "sí"
+  genérico sin contexto de cotización NO basta. La oferta del asesor por sí
+  sola (sin respuesta del cliente) queda en null.
 - Que el asesor PREGUNTE si quiere agendar ("¿quiere agendar una cita?") o si
   le separa la moto ("¿le separo la moto?") NO significa que el cliente la
   solicitó. Si el cliente no acepta ni expresa intención de visitar, no
@@ -58,6 +62,10 @@ Cita y visita (regla contextual, no literal):
 - Una pregunta puramente informativa de horario o ubicación aislada no
   necesariamente implica cita. Ejemplos: "¿hasta qué hora abren?".
   Acompañada de "voy esta tarde", sí.
+- Anuncios y confirmaciones coloquiales del cliente SÍ son cita: "¿mañana
+  los visito?", "voy esta tarde para allá", "ya voy en camino", "voy
+  saliendo", "sí por favor, voy saliendo", "listo, sepáremela", "hágale
+  pues, ya voy en camino". No los degraden a null por ser coloquiales.
 - La evidencia debe ser la cita literal del CLIENTE que respalde la
   decisión. Ejemplo: "sí por favor, voy saliendo". Nunca un mensaje del
   asesor. Ejemplo prohibido: "¿le separo la moto?".
@@ -140,7 +148,10 @@ Presupuesto (regla estricta):
   "tengo 5 millones disponibles", "tengo 5 millones para comprarla",
   "la quiero de contado, tengo 5 millones").
 - presupuesto != cuota inicial ("tengo 2 millones de inicial",
-  "puedo dar 5 millones de inicial").
+  "puedo dar 5 millones de inicial", "tengo 3 millones para la inicial").
+  Ese dinero es cuota_inicial (si está destinado a la inicial), NUNCA
+  presupuesto; el mismo monto puede aparecer en cuota_inicial y presupuesto
+  debe quedar en null.
 - presupuesto != cuota mensual ("quiero pagar cuotas de 300 mil").
 - presupuesto != precio de la moto, lo informe quien lo informe.
 - Una pregunta sobre precio ("¿con 5 millones me alcanza?", "¿me vale
@@ -148,6 +159,16 @@ Presupuesto (regla estricta):
 - Si el cliente declara un rango, usa el valor máximo del rango.
 - En caso de ambigüedad, presupuesto = null. Es preferible null a inventar
   una restricción presupuestaria que el cliente nunca declaró.
+
+Cuota inicial (regla estricta):
+- "cuota_inicial" es SOLO el monto que el CLIENTE declara tener o aportar como
+  inicial/entrada/enganche. Ejemplos: "tengo 1 palo de inicial", "tengo 1200
+  mil para la inicial", "tengo 3 millones para la inicial".
+- Nunca usar: cuota mensual ("cuotas de $480.000"), valor de cuota ofrecido por
+  el asesor ("con esa inicial la cuota le queda alrededor de $320.000"), precio
+  total de la moto, ni ningún monto mencionado solo por el asesor. En esos
+  casos cuota_inicial = null (evidencia del asesor no cuenta).
+- La evidencia debe ser la cita breve y literal del CLIENTE con el monto.
 
 Reglas obligatorias:
 - Responde ÚNICAMENTE con un objeto JSON válido que siga el esquema indicado. Sin texto adicional.

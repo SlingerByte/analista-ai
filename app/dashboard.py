@@ -59,6 +59,7 @@ from app.models import (
 )
 from app.presentation import (
     dimension_label,
+    display_name,
     score_reason_label,
     sender_class,
     sender_label,
@@ -67,6 +68,7 @@ from app.scoring.service import score_and_persist_lead
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+templates.env.filters["display_name"] = display_name
 
 logger = logging.getLogger("analista_ia.ai")
 

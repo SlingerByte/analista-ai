@@ -1,0 +1,105 @@
+{# Tema visual compartido (paleta institucional + componentes + responsive).
+   Incluir al final del <head> para que sus reglas tengan prioridad.
+   No cambia estructura ni textos: solo presentación. #}
+<style>
+  :root {
+    --c-primary:#154c79; --c-primary-dark:#063970; --c-accent:#1e81b0;
+    --c-bg:#eeeeee; --c-surface:#ffffff; --c-text:#21130d; --c-muted:#4b5563;
+    --c-line:#d7dee5; --c-soft1:#abdbe3; --c-soft2:#76b5c5;
+    --c-warn:#eab676; --c-warn-strong:#e28743; --c-danger:#873e23;
+    --radius:14px; --shadow:0 1px 3px rgba(6,57,112,.12); --focus:#1e81b0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         margin: 0; background: var(--c-bg); color: var(--c-text); line-height: 1.45; }
+  header { background: linear-gradient(135deg, var(--c-primary-dark), var(--c-primary));
+           color: #eaf2f8; padding: 1rem 1.5rem; }
+  header h1 { margin: 0; font-size: 1.25rem; color: #fff; }
+  header p { margin: .3rem 0 0; color: var(--c-soft1); font-size: .9rem; }
+  header a { color: var(--c-soft1); }
+  main { max-width: 80rem; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+  section { background: var(--c-surface); border: 1px solid var(--c-line);
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            padding: 1rem 1.15rem; margin-bottom: 1rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--c-primary-dark); }
+  h3, h4 { color: var(--c-primary-dark); }
+  .cards { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .cards .card, .card { background: var(--c-surface); border: 1px solid var(--c-line);
+        border-radius: var(--radius); padding: .8rem 1.1rem; min-width: 8rem;
+        box-shadow: var(--shadow); }
+  .card strong { display: block; font-size: 1.6rem; color: var(--c-primary-dark); }
+  .card span { font-size: .85rem; color: var(--c-muted); }
+  a { color: var(--c-accent); }
+  button, .btn { background: var(--c-accent); color: #fff; border: 0; border-radius: 10px;
+        padding: .6rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
+        min-height: 44px; }
+  button:hover, .btn:hover { background: var(--c-primary); }
+  button:disabled { background: #9fb4c0; cursor: not-allowed; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  input, select, textarea { font: inherit; color: var(--c-text); background: #fff;
+        border: 1px solid var(--c-line); border-radius: 10px; padding: .5rem .6rem;
+        min-height: 44px; }
+  label { font-size: .85rem; color: var(--c-muted); }
+  form.filters { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end;
+        background: var(--c-surface); border: 1px solid var(--c-line);
+        border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1rem; }
+  form.filters label { display: grid; gap: .25rem; }
+  table { width: 100%; border-collapse: collapse; background: var(--c-surface);
+        font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--c-line);
+        vertical-align: top; }
+  th { background: #e6eef4; font-size: .75rem; letter-spacing: .03em;
+       text-transform: uppercase; color: var(--c-primary-dark); }
+  tr:hover td { background: #f6fafc; }
+  .badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px;
+        font-weight: 700; font-size: .78rem; border: 2px solid; white-space: nowrap; }
+  .badge-alta { color: #7a2f12; border-color: var(--c-danger); background: #f7e4dc; }
+  .badge-media { color: #8a4b12; border-color: var(--c-warn-strong); background: #fdf1de; }
+  .badge-baja { color: var(--c-primary-dark); border-color: var(--c-accent);
+        background: var(--c-soft1); }
+  .badge-unknown { color: #374151; border-color: #9ca3af; background: #eef2f6; }
+  .badge-informativa { color: #374151; border-color: #9ca3af; background: #eef2f6; }
+  .badge-analizada { color: #14532d; border-color: #6bbf8a; background: #e7f4ea;
+        margin-left: .5rem; }
+  .empty { background: var(--c-surface); border: 1px dashed #9fb4c0;
+        border-radius: var(--radius); padding: 2rem; text-align: center;
+        color: var(--c-muted); }
+  .alert { padding: .7rem 1rem; border-radius: var(--radius); border: 1px solid;
+        margin: .6rem 0; }
+  .alert-ok { background: #e7f4ea; border-color: #9ed4ad; color: #14532d; }
+  .alert-warn { background: #fdf1de; border-color: var(--c-warn); color: #7c4a12; }
+  .alert-error { background: #f7e4dc; border-color: #d8a08c; color: #7a2f12; }
+  .alert-info { background: #e7f1f6; border-color: var(--c-soft2); color: var(--c-primary-dark); }
+  .muted { color: var(--c-muted); }
+  code { background: #eef4f8; padding: .05rem .35rem; border-radius: 6px; }
+  .evidence, .unknown { color: var(--c-muted); font-size: .82rem; font-weight: 400;
+        font-style: italic; }
+  nav.pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem;
+        flex-wrap: wrap; }
+  td, th, dd, dt, p, li { overflow-wrap: anywhere; }
+  img, table { max-width: 100%; }
+
+  /* Tablas: scroll horizontal controlado donde no aplica tarjeta */
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 760px) {
+    main { padding: 1rem .8rem 2.5rem; }
+    header { padding: .85rem 1rem; }
+    .cards { gap: .6rem; }
+    .cards .card, .card { flex: 1 1 8rem; min-width: 0; }
+    dl { grid-template-columns: 1fr !important; }
+    form.filters > * { flex: 1 1 100%; }
+    /* Tablas → tarjetas apiladas (etiqueta por celda vía data-label) */
+    table thead { display: none; }
+    table, table tbody, table tr, table td { display: block; width: 100%; }
+    table tr { border: 1px solid var(--c-line); border-radius: 12px;
+               margin-bottom: .7rem; padding: .35rem .5rem; box-shadow: var(--shadow); }
+    table td { border: 0; padding: .3rem .25rem; display: flex;
+               justify-content: space-between; gap: 1rem; }
+    table td::before { content: attr(data-label); font-weight: 600;
+               color: var(--c-muted); flex: 0 0 auto; margin-right: .5rem; }
+    table td[data-label=""]::before { content: ""; }
+  }
+</style>

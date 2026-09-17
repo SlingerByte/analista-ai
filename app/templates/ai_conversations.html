@@ -35,6 +35,7 @@
       nav.pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
       a { color: #1d4ed8; }
     </style>
+    {% include "_theme.html" %}
   </head>
   <body>
     <header>
@@ -90,7 +91,7 @@
         <div class="row">
           <h3>{{ row.conversation_id }} <span class="badge badge-analizada">Analizada</span></h3>
           <div class="meta">
-            {{ row.customer_name or 'Sin nombre' }}
+            {{ row.customer_name | display_name or 'Sin nombre' }}
             {% if row.lead_id %} · Lead: {{ row.lead_id }}{% else %} · Sin lead{% endif %}
             {% if is_admin and row.company_id %} · Empresa: {{ row.company_id }}{% endif %}
           </div>

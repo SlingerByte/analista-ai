@@ -33,7 +33,8 @@ uv run pipeline-ai --ai-limit 100   # prueba controlada
 - **FastAPI** + **Jinja2** (HTML server-side), un solo servicio.
 - **PostgreSQL** con **SQLAlchemy 2** + **Alembic** (driver `psycopg` 3).
 - **Abstracción de proveedor de IA**: `Ollama` para desarrollo local y
-  `OpenRouter` para producción; el pipeline no depende de un proveedor concreto.
+  `OpenRouter`/`Groq` para producción; el pipeline no depende de un proveedor
+  concreto.
 - **Autenticación por roles** (asesor, supervisor, admin) con sesión firmada.
 - **Aislamiento por empresa** aplicado siempre en el backend.
 
@@ -175,6 +176,69 @@ prioridad (comercial + urgencia) por separado de la calidad.
 - La definición central de estados vive en `app/lead_status.py`
   (`is_lead_open` / `is_lead_terminal`); no hay listas duplicadas.
 
+## IA y scoring (cómo se combinan)
+
+- La **IA interpreta** la conversación y extrae señales (modelo, presupuesto,
+  cuota inicial, forma de pago, intención, objeción, cita, cotización) junto con
+  su **evidencia** (cita del cliente).
+- El **scoring es determinista y explicable**: **no** es "el resultado de la IA".
+  La IA **aporta señales** que el scoring pondera junto con datos que **no**
+  dependen de la conversación (estado de gestión, antigüedad, teléfono/email/
+  ciudad, modelo de catálogo, ticket).
+- Por eso un lead **puede tener score aunque todavía no tenga análisis IA**: se
+  calcula con las señales deterministas disponibles y mejora cuando llega el
+  análisis de la conversación.
+
+## CRM vs IA (sin sobrescritura)
+
+- El **CRM** es el dato operativo registrado (p. ej. el modelo cotizado).
+- La **IA** es una **señal independiente** interpretada desde la conversación.
+- La IA **nunca sobrescribe** el CRM: si el modelo registrado y el mencionado por
+  el cliente difieren, la interfaz **muestra la discrepancia** y conserva ambos.
+  Ejemplo real de la prueba: CRM `Honda Navi` vs conversación `Bajaj Boxer CT 100`.
+
+## Leads sin conversación
+
+No todos los leads tienen una conversación disponible. En ese caso el sistema
+**no inventa información**: los campos de IA quedan desconocidos y el lead se
+prioriza con las **señales deterministas** disponibles. Es un escenario normal y
+ocurrió de forma real en la prueba con Ollama (**10 de 12** leads no tenían
+conversación asociada).
+
+## Presentación de nombres (solo visual)
+
+Los nombres de cliente se muestran de forma consistente con
+`app/presentation.display_name` (expuesto como filtro Jinja). Es **solo
+presentación**:
+
+- **no** modifica la base de datos, ni el valor original, ni agrega columnas ni
+  migraciones;
+- conserva tildes y Unicode, quita espacios externos y colapsa espacios repetidos;
+- normaliza palabras **completamente mayúsculas o completamente minúsculas** y
+  **deja intacta** la capitalización mixta; no usa IA.
+
+Auditoría real: **329 / 1.501** nombres (21,9%) cambian de formato visual.
+**No es deduplicación:** `identity` usa su propia normalización y no cambió
+(43 clústeres / 86 miembros).
+
+## Prueba real con IA local (Ollama, controlada)
+
+Prueba puntual con **Ollama local** (`qwen2.5:3b`, proveedor `local`) sobre 12
+leads seleccionados:
+
+- solo **2** tenían conversación: se procesaron **2** conversaciones, **2
+  exitosas, 0 errores**;
+- los **10** restantes no se tocaron (sin conversación; **no se inventó** ninguna);
+- los resultados quedaron **persistidos** en PostgreSQL/Supabase con la lógica
+  existente (validación + `is_current` + scoring);
+- ejemplo `LD-01085`: banda **Baja (C21.16 / U60 / Q32.81) → Alta (C71.16 / U100 /
+  Q79.81)** por señales reales (intención alta, cuota inicial, solicitud de visita);
+- ejemplo `LD-00214`: detectó un modelo distinto al del CRM; el **score no cambió**
+  porque el resto de señales no fue suficiente.
+
+> Es una prueba **controlada y pequeña**, **no** una evaluación estadística del
+> modelo.
+
 ## Ejecución local
 
 Requiere [uv](https://docs.astral.sh/uv/) y un PostgreSQL accesible.
@@ -208,7 +272,7 @@ admin.demo@motos.local      / demo-admin-123        → global
 ## Tests
 
 ```bash
-uv run pytest         # 525 passed
+uv run pytest         # 568 passed
 uv run alembic check  # No new upgrade operations detected (requiere BD accesible)
 ```
 
@@ -241,10 +305,13 @@ Variables obligatorias en producción:
 | `APP_ENV` | `production`. |
 | `SECRET_KEY` | Secreto real (Render puede generarlo). La app **falla al arrancar** si es un valor inseguro. |
 | `DATABASE_URL` | URL de PostgreSQL (`postgresql+psycopg://...`). |
-| `AI_PROVIDER` | `openrouter` (Ollama no está permitido en producción). |
-| `OPENROUTER_API_KEY` | Clave del proveedor remoto. |
-| `OPENROUTER_MODEL` | Modelo con salida JSON. |
+| `AI_PROVIDER` | `openrouter` o `groq` (Ollama/local no está permitido en producción). |
+| `OPENROUTER_API_KEY` | Clave de OpenRouter (si `AI_PROVIDER=openrouter`). |
+| `OPENROUTER_MODEL` | Modelo con salida JSON (OpenRouter). |
 | `OPENROUTER_BASE_URL` | Opcional; por defecto `https://openrouter.ai/api/v1`. |
+| `GROQ_API_KEY` | Clave de Groq (si `AI_PROVIDER=groq`). |
+| `GROQ_MODEL` | Modelo con salida JSON (Groq). |
+| `GROQ_BASE_URL` | Opcional; por defecto la API de Groq. |
 
 Comportamiento de producción:
 
@@ -267,3 +334,98 @@ Comportamiento de producción:
 - La calidad del dato (`quality`) se muestra aparte y no entra en `queue_score`.
 - La validación de evidencia es determinista y conservadora: puede rechazar
   citas reformuladas por el modelo.
+
+## Limitaciones actuales y mejoras futuras
+
+### El sistema funciona; hoy el límite está en el proveedor de IA
+
+El flujo de negocio está completo y probado de extremo a extremo: **ingesta
+automática → normalización → deduplicación → identificación de conversaciones →
+extracción estructurada con IA → validación de evidencia → persistencia →
+scoring → priorización → asignación → aislamiento por empresa → gestión del
+ciclo de vida (cierre) → reintentos → recálculo del score tras el análisis**.
+También está verificado el análisis bajo demanda y el soporte de varios
+proveedores (Ollama local de desarrollo, OpenRouter y Groq remotos).
+
+La limitación actual **no es un fallo del sistema**: es la **capacidad del
+proveedor de IA** (cuota, rate limits, disponibilidad de modelos gratuitos y
+latencia). Por eso **no se recomienda lanzar tandas grandes de análisis IA de
+forma indiscriminada**.
+
+Guía práctica (orientativa, **no** es un límite técnico universal):
+
+1. Procesar **1 conversación** y verificar el resultado.
+2. Continuar con **2**.
+3. Subir a **~5** si el proveedor lo permite.
+4. Tandas mayores **solo cuando exista capacidad suficiente**.
+
+El tamaño adecuado del lote depende del **proveedor, el modelo, la cuota, la
+latencia y la disponibilidad** del momento.
+
+### Por qué conviene procesar en lotes pequeños
+
+- Límites de cuota y **rate limits** del proveedor.
+- Disponibilidad variable de modelos gratuitos.
+- Latencia por llamada.
+- Posibles respuestas **HTTP 429** (temporalmente limitado).
+- Consumo de tokens.
+- Capacidad limitada de la infraestructura.
+- Necesidad de **controlar y diagnosticar errores**.
+- Facilidad de **reintento** (idempotente por `input_hash`).
+- **Evitar perder una tanda completa** por un fallo puntual.
+- Poder **verificar progresivamente** la calidad de las extracciones.
+
+> Procesar poco a poco **no** significa que el sistema no pueda procesar más
+> datos. Significa que hoy el **proveedor de IA es el cuello de botella** y el
+> sistema está diseñado para trabajar de forma **incremental**.
+
+### La IA interpreta; el scoring no depende solo de la IA
+
+La IA **interpreta conversaciones y extrae señales** (modelo, intención, cita,
+cotización, presupuesto, cuota inicial, forma de pago, objeción). El **scoring
+es determinista y explicable** y **no depende exclusivamente de la IA**: sigue
+funcionando aunque no se analicen IA todas las conversaciones. Esto permite
+operar con la capacidad disponible y ampliar el análisis cuando convenga.
+
+### Implementado hoy
+
+Ingesta y normalización automáticas; deduplicación / `identity`; scoring
+determinista y explicable; asignación por empresa/POS con capacidad dinámica,
+continuidad y overflow; ciclo de vida con cierre
+(`Cerrado`/`Perdido`/`Descartado`) y liberación de capacidad; extracción IA
+(prompt **V8**, schema **v1**) con validación de evidencia; proveedores
+OpenRouter y Groq (remotos) y Ollama local; análisis bajo demanda; Ollama local
+desde el navegador (**experimental**); aislamiento multiempresa; presentación de
+nombres; deployment en Render con PostgreSQL gestionado (Supabase).
+
+### Observación real: evidencia literal pero no siempre adecuada
+
+En la prueba, el modelo extrajo correctamente
+`model_interes = "Bajaj Boxer CT 100"`, pero eligió como evidencia una frase del
+cliente que **no justifica** ese campo (`"Tengo 1 palos de inicial"`). El
+validador **sí** comprueba que la evidencia sea una cita **literal del cliente**,
+pero **no** valida por completo que sea **semánticamente adecuada** para el
+campo. Se documenta como **mejora futura** (no es un bug crítico; en esta versión
+**no** se modifica el prompt V8 ni el validador).
+
+### Futuro / no implementado
+
+Mejoras **futuras** (hoy **no** implementadas; se listan como hoja de ruta):
+aumentar capacidad/cuota del proveedor, usar modelos con mayor disponibilidad,
+**cola de trabajos**, procesamiento asíncrono, **reintentos con backoff**,
+monitoreo de consumo/cuota, métricas de
+calidad de extracción, evaluación automática de modelos, **fallback entre
+proveedores**, automatización periódica de análisis, **mejoras del validador de
+evidencia** (adecuación semántica de la cita), mayor **cobertura de pruebas de
+extracción**, **observabilidad** y un uso más robusto de **IA local**.
+
+### Ollama local desde el navegador (experimental, opcional)
+
+Existe una **ruta experimental/alternativa** para usar Ollama del equipo del
+usuario **desde el navegador** (ver la sección de IA). No es necesaria para usar
+la aplicación: **producción funciona con proveedores remotos** (OpenRouter/Groq).
+La detección depende del **navegador, CORS (`OLLAMA_ORIGINS`) y la configuración
+local**; requiere Ollama instalada y ejecutándose en el equipo del usuario y
+**no debe exponerse públicamente**. No se garantiza su funcionamiento en todos
+los navegadores/redes (p. ej. *Private Network Access* en Chromium puede
+bloquear HTTPS → localhost).

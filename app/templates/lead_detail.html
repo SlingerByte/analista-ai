@@ -39,10 +39,11 @@
       .msg-otro { background: #fef3c7; margin-right: auto; }
       a { color: #1d4ed8; }
     </style>
+    {% include "_theme.html" %}
   </head>
   <body>
     <header>
-      <h1>{{ lead.customer_name or 'Sin nombre' }} <span class="badge badge-{{ score.band.lower() if score and score.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ score.band if score and score.band else 'Sin score' }}</span></h1>
+      <h1>{{ lead.customer_name | display_name or 'Sin nombre' }} <span class="badge badge-{{ score.band.lower() if score and score.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ score.band if score and score.band else 'Sin score' }}</span></h1>
       <p>{{ lead.lead_id }}{% if assignment %} · ranking #{{ assignment.priority_rank }}{% endif %} · {{ advisor_name }}{% if assignment and assignment.advisor_id %} ({{ assignment.advisor_id }}){% endif %}</p>
     </header>
     <main>

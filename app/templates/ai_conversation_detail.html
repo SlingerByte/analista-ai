@@ -29,12 +29,13 @@
       .meta-list { font-size: 0.85rem; color: #475569; margin: 0; }
       a { color: #1d4ed8; }
     </style>
+    {% include "_theme.html" %}
   </head>
   <body>
     <header>
       <h1>{{ conversation.conversation_id }}</h1>
       <p>
-        {{ lead.customer_name if lead and lead.customer_name else 'Sin nombre' }}
+        {{ (lead.customer_name | display_name) if lead and lead.customer_name else 'Sin nombre' }}
         {% if conversation.lead_id %} · Lead: {{ conversation.lead_id }}{% else %} · Sin lead{% endif %}
         {% if is_admin and conversation.company_id %} · Empresa: {{ conversation.company_id }}{% endif %}
       </p>

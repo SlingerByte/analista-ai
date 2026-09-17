@@ -8,6 +8,12 @@ genera un fallback legible en lugar de exponer un identificador técnico crudo.
 
 from __future__ import annotations
 
+import re
+
+_NAME_WS = re.compile(r"\s+")
+# Tras estos separadores se capitaliza la letra siguiente (María-José, O'Neill).
+_NAME_CAPITALIZE_AFTER = ("'", "-")
+
 # Etiquetas humanas de los códigos de razón del scoring v1.
 SCORE_REASON_LABELS: dict[str, str] = {
     # Dimensión comercial
@@ -90,3 +96,53 @@ def sender_class(sender: str | None) -> str:
     """Clase CSS segura (no proviene del dato)."""
     key = (sender or "").strip().lower()
     return key if key in SENDER_LABELS else "otro"
+
+
+def _capitalize_name_word(word: str) -> str:
+    """Capitaliza la primera letra y baja el resto, conservando separadores."""
+    out: list[str] = []
+    capitalize_next = True
+    for char in word:
+        if char.isalpha():
+            out.append(char.upper() if capitalize_next else char.lower())
+            capitalize_next = False
+        else:
+            out.append(char)
+            capitalize_next = char in _NAME_CAPITALIZE_AFTER
+    return "".join(out)
+
+
+def _normalize_name_word(word: str) -> str:
+    """Normaliza solo palabras homogéneas (TODO mayúsculas o todo minúsculas).
+
+    Si la palabra ya tiene capitalización mixta (p. ej. "McDonald", "MismoPos")
+    se deja **intacta**: no inventamos ni corregimos la capitalización del dato.
+    """
+    has_upper = any(char.isupper() for char in word)
+    has_lower = any(char.islower() for char in word)
+    if has_upper and has_lower:
+        return word
+    return _capitalize_name_word(word)
+
+
+def display_name(value: str | None) -> str | None:
+    """Nombre listo para mostrar, de forma consistente.
+
+    - ``strip`` externo y colapsa espacios internos repetidos;
+    - normaliza la capitalización **solo** de palabras todo-mayúsculas o
+      todo-minúsculas (p. ej. "BRAYAN TORRES OSORIO" → "Brayan Torres Osorio",
+      "vanessa ramírez quintero" → "Vanessa Ramírez Quintero");
+    - deja **intactas** las palabras con capitalización mixta ("Brayan TORRES
+      Osorio" → "Brayan Torres Osorio"; "MismoPos" → "MismoPos");
+    - **conserva tildes y Unicode** y no elimina caracteres válidos;
+    - **no** corrige ortografía, **no** traduce, **no** reordena y **no** usa IA;
+    - devuelve ``None`` si no hay contenido.
+
+    No altera el valor almacenado: es una capa de **presentación**.
+    """
+    if value is None:
+        return None
+    text = _NAME_WS.sub(" ", str(value).strip())
+    if not text:
+        return None
+    return " ".join(_normalize_name_word(word) for word in text.split(" "))

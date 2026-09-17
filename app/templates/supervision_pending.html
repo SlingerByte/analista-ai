@@ -30,6 +30,7 @@
                padding: 2rem; text-align: center; color: #475569; }
       a { color: #1d4ed8; }
     </style>
+    {% include "_theme.html" %}
   </head>
   <body>
     <header>
@@ -73,17 +74,17 @@
         <tbody>
           {% for row in rows %}
           <tr>
-            <td>{{ row.assignment.priority_rank }}</td>
-            <td>{{ row.lead.company_id }}</td>
-            <td>{{ row.lead.point_of_sale_id }}</td>
-            <td>{{ row.lead.customer_name or 'Sin nombre' }}</td>
-            <td>{{ row.model }}</td>
-            <td>{{ row.status }}</td>
-            <td><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
-            <td>{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
-            <td>{{ row.lead.registration_at.strftime('%Y-%m-%d') if row.lead.registration_at else 'Desconocido' }}</td>
-            <td><code>{{ row.assignment.reason }}</code> — sin capacidad en {{ row.lead.company_id }}/{{ row.lead.point_of_sale_id }}</td>
-            <td><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
+            <td data-label="#">{{ row.assignment.priority_rank }}</td>
+            <td data-label="Empresa">{{ row.lead.company_id }}</td>
+            <td data-label="POS">{{ row.lead.point_of_sale_id }}</td>
+            <td data-label="Cliente">{{ row.lead.customer_name | display_name or 'Sin nombre' }}</td>
+            <td data-label="Modelo">{{ row.model }}</td>
+            <td data-label="Estado">{{ row.status }}</td>
+            <td data-label="Prioridad"><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
+            <td data-label="Score">{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
+            <td data-label="Registro">{{ row.lead.registration_at.strftime('%Y-%m-%d') if row.lead.registration_at else 'Desconocido' }}</td>
+            <td data-label="Motivo"><code>{{ row.assignment.reason }}</code> — sin capacidad en {{ row.lead.company_id }}/{{ row.lead.point_of_sale_id }}</td>
+            <td data-label=""><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
           </tr>
           {% endfor %}
         </tbody>

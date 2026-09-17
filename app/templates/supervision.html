@@ -35,6 +35,7 @@
                padding: 2rem; text-align: center; color: #475569; }
       a { color: #1d4ed8; }
     </style>
+    {% include "_theme.html" %}
   </head>
   <body>
     <header>
@@ -91,16 +92,16 @@
         <div id="ai-local-msg" style="display:none;margin-top:0.6rem;border-radius:0.5rem;padding:0.6rem 1rem;"></div>
         {% if ai_result %}
           {% if ai_result.empty %}
-          <p style="background:#fef3c7;border:1px solid #fcd34d;border-radius:0.5rem;padding:0.6rem 1rem;color:#92400e;margin-bottom:0;">
-            No hay conversaciones pendientes para analizar.
+          <p class="alert alert-warn" style="margin-bottom:0;">
+            ⏸ No hay conversaciones pendientes para analizar.
           </p>
           {% elif ai_result.unavailable %}
-          <p style="background:#fee2e2;border:1px solid #fca5a5;border-radius:0.5rem;padding:0.6rem 1rem;color:#991b1b;margin-bottom:0;">
-            <strong>{{ ai_result.reason }}</strong>{% if ai_result.provider %} <span style="opacity:.8;">(proveedor: {{ ai_result.provider }})</span>{% endif %}
+          <p class="alert alert-error" style="margin-bottom:0;">
+            ⚠ IA no disponible. <strong>{{ ai_result.reason }}</strong>{% if ai_result.provider %} <span style="opacity:.8;">(proveedor: {{ ai_result.provider }})</span>{% endif %}
           </p>
           {% else %}
           {% set failed_total = (ai_result.errors | int) + (ai_result.failed | int) %}
-          <div style="background:#dcfce7;border:1px solid #86efac;border-radius:0.5rem;padding:0.6rem 1rem;color:#166534;margin-bottom:0;">
+          <div class="alert alert-ok" style="margin-bottom:0;">
             Análisis completado
             <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
               <li><strong>{{ ai_result.processed | int }}</strong> {% if (ai_result.processed | int) == 1 %}conversación procesada{% else %}conversaciones procesadas{% endif %}</li>
@@ -120,7 +121,7 @@
               <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
                 {% for c in ai_result.conversations %}
                 <li>
-                  <code>{{ c.conversation_id }}</code>{% if c.customer_name %} — {{ c.customer_name }}{% endif %} — {{ c.lead_id or 'Sin lead' }}{% if c.status == 'error' %} <span style="color:#991b1b;">(con error)</span>{% endif %}
+                  <code>{{ c.conversation_id }}</code>{% if c.customer_name %} — {{ c.customer_name | display_name }}{% endif %} — {{ c.lead_id or 'Sin lead' }}{% if c.status == 'error' %} <span style="color:#991b1b;">(con error)</span>{% endif %}
                 </li>
                 {% endfor %}
               </ul>
@@ -145,16 +146,16 @@
         <tbody>
           {% for row in rows %}
           <tr>
-            <td>{{ row.lead.customer_name or 'Sin nombre' }}</td>
-            <td>{{ row.lead.company_id }}</td>
-            <td>{{ row.lead.point_of_sale_id }}</td>
-            <td>{{ row.owner_name }}{% if row.assignment.advisor_id %} ({{ row.assignment.advisor_id }}){% endif %}</td>
-            <td>{{ row.model }}</td>
-            <td>{{ row.lead.status or 'Desconocido' }}</td>
-            <td><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
-            <td>{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
-            <td>{{ row.assignment.priority_rank }}</td>
-            <td><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
+            <td data-label="Cliente">{{ row.lead.customer_name | display_name or 'Sin nombre' }}</td>
+            <td data-label="Empresa">{{ row.lead.company_id }}</td>
+            <td data-label="POS">{{ row.lead.point_of_sale_id }}</td>
+            <td data-label="Asesor">{{ row.owner_name }}{% if row.assignment.advisor_id %} ({{ row.assignment.advisor_id }}){% endif %}</td>
+            <td data-label="Modelo">{{ row.model }}</td>
+            <td data-label="Estado">{{ row.lead.status or 'Desconocido' }}</td>
+            <td data-label="Prioridad"><span class="badge badge-{{ row.band.lower() if row.band in ['Alta', 'Media', 'Baja'] else 'unknown' }}">{{ row.band }}</span></td>
+            <td data-label="Score">{{ '%.1f' % row.queue if row.queue is not none else 'Desconocido' }}</td>
+            <td data-label="#">{{ row.assignment.priority_rank }}</td>
+            <td data-label=""><a href="/leads/{{ row.lead.lead_id }}">Detalle</a></td>
           </tr>
           {% endfor %}
         </tbody>

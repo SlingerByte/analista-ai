@@ -406,3 +406,100 @@ def test_process_pending_reuses_without_provider_calls(factory):
         assert second["reused"] == 2
         assert second["processed"] == 2
         assert extractor.calls == 2  # idempotencia: no se rellama al proveedor
+
+
+# --- Reintento idempotente del mismo input (sin IntegrityError) ---------------
+
+
+class FakeExceptionExtractor(FakeSuccessExtractor):
+    def extract(self, conversation):
+        self.calls += 1
+        raise RuntimeError("boom")
+
+
+def _count(session, conversation_id: str) -> int:
+    return session.scalar(
+        sa.select(sa.func.count()).select_from(AIExtraction).where(
+            AIExtraction.conversation_id == conversation_id))
+
+
+def test_retry_error_then_success_same_input_updates_in_place(factory):
+    with factory() as session:
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        # Reintento SIN force: actualiza la fila del mismo input, no inserta.
+        ok = process_conversation(session, "CONV-00001", FakeSuccessExtractor())
+        assert ok.extraction.extraction_id == err.extraction.extraction_id
+        assert ok.extraction.status == STATUS_SUCCESS
+        assert ok.extraction.is_current is True
+        assert _count(session, "CONV-00001") == 1
+        assert get_current_extraction(session, "CONV-00001") is not None
+
+
+def test_retry_error_twice_same_input_no_duplicate_no_integrity_error(factory):
+    with factory() as session:
+        first = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        second = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        assert second.extraction.extraction_id == first.extraction.extraction_id
+        assert second.extraction.status == STATUS_ERROR
+        assert _count(session, "CONV-00001") == 1
+
+
+def test_retry_429_error_message_is_preserved(factory):
+    with factory() as session:
+        process_conversation(session, "CONV-00001", FakeFailExtractor())
+        report = process_pending(session, FakeFailExtractor(), limit=10)
+        assert report["errors"] >= 1
+        assert report["error_reasons"]
+        assert "URLError" in (report["error_reasons"][0]["error"] or "")
+
+
+def test_different_input_hash_after_error_creates_new_row(factory):
+    with factory() as session:
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        _append_message(session, "CONV-00001", "mensaje nuevo")
+        ok = process_conversation(session, "CONV-00001", FakeSuccessExtractor())
+        assert ok.extraction.extraction_id != err.extraction.extraction_id
+        assert _count(session, "CONV-00001") == 2
+
+
+def test_force_semantics_preserved_with_same_input(factory):
+    extractor = FakeSuccessExtractor()
+    with factory() as session:
+        first = process_conversation(session, "CONV-00001", extractor)
+        forced = process_conversation(session, "CONV-00001", extractor, force=True)
+        assert forced.reused is False
+        assert extractor.calls == 2
+        assert forced.extraction.extraction_id == first.extraction.extraction_id
+
+
+# --- Contadores de process_pending (nunca negativos) --------------------------
+
+
+def test_counters_mixed_success_and_error(factory):
+    extractor = _FailForOrphan()  # CONV-00001 éxito, CONV-9ORPHAN error
+    with factory() as session:
+        report = process_pending(session, extractor, limit=10)
+    assert report["processed"] == 2
+    assert report["success"] == 1
+    assert report["errors"] == 1
+    assert report["failed"] == 0
+    assert report["success"] == report["processed"] - report["errors"]
+    assert report["success"] >= 0
+
+
+def test_counters_exception_yields_zero_success_not_negative(factory):
+    extractor = FakeExceptionExtractor()
+    with factory() as session:
+        report = process_pending(session, extractor, limit=10)
+    assert report["processed"] == 0
+    assert report["failed"] == 2
+    assert report["errors"] == 0
+    assert report["success"] == 0  # nunca negativo
+
+
+def test_counters_all_success(factory):
+    with factory() as session:
+        report = process_pending(session, FakeSuccessExtractor(), limit=10)
+    assert report["success"] == 2
+    assert report["failed"] == 0
+    assert report["errors"] == 0

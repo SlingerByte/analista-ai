@@ -27,3 +27,11 @@ services:
         sync: false
       - key: OPENROUTER_BASE_URL
         value: https://openrouter.ai/api/v1
+      # Groq (remoto alternativo). Opcional: si GROQ_API_KEY y GROQ_MODEL están
+      # configurados, aparece como opción disponible; no afecta a OpenRouter.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        sync: false
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai/v1

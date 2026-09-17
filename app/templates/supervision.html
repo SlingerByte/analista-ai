@@ -99,9 +99,12 @@
           <div style="background:#dcfce7;border:1px solid #86efac;border-radius:0.5rem;padding:0.6rem 1rem;color:#166534;margin-bottom:0;">
             Análisis completado
             <ul style="margin:0.5rem 0 0;padding-left:1.2rem;">
-              <li><strong>{{ ai_result.processed | int }}</strong> conversaciones procesadas ({{ ai_result.candidates | int }} seleccionadas con límite {{ ai_result.limit | int }})</li>
-              <li><strong>{{ (ai_result.processed | int) - (ai_result.errors | int) - (ai_result.failed | int) }}</strong> exitosas</li>
-              <li><strong>{{ ai_result.errors | int }}</strong> con error · <strong>{{ ai_result.failed | int }}</strong> fallidas · <strong>{{ ai_result.reused | int }}</strong> reutilizadas</li>
+              <li><strong>{{ ai_result.processed | int }}</strong> procesadas ({{ ai_result.candidates | int }} seleccionadas con límite {{ ai_result.limit | int }})</li>
+              <li><strong>{{ ai_result.success | int }}</strong> exitosas</li>
+              <li><strong>{{ ai_result.errors | int }}</strong> con error de extracción · <strong>{{ ai_result.failed | int }}</strong> fallidas (excepción) · <strong>{{ ai_result.reused | int }}</strong> reutilizadas</li>
+              {% if ai_result.failure_reason %}
+              <li style="color:#991b1b;">Motivo: {{ ai_result.failure_reason | e }}</li>
+              {% endif %}
               <li><strong>{{ ai_result.rescored | int }}</strong> leads con score actualizado{% if ai_result.rescore_errors %} · <strong>{{ ai_result.rescore_errors | int }}</strong> con error de score{% endif %}</li>
               <li>Proveedor: {{ ai_result.provider }} · Modelo: {{ ai_result.model }}</li>
               <li>Tiempo: {{ ai_result.seconds }} s</li>

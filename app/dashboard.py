@@ -8,6 +8,7 @@ identidad. Rutas de negocio requieren login; /login y /health son públicas.
 from __future__ import annotations
 
 import math
+import re
 import time
 from datetime import date
 from pathlib import Path
@@ -19,11 +20,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.ai.factory import build_extractor
+from app.ai.factory import PRODUCTION_PROVIDERS, build_extractor
 from app.ai.service import get_current_extraction, process_pending
 from app.assignment.service import STATUS_ASSIGNED, STATUS_OVERFLOW, retry_assignment
 from app.auth import ROLE_ADVISOR, ROLE_ADMIN, ROLE_SUPERVISOR, require_login
-from app.config import get_settings
+from app.config import get_settings, is_production
 from app.db import get_session
 from app.ingestion.catalog import build_catalog_index, match_model
 from app.lead_status import (
@@ -157,13 +158,43 @@ MAX_AI_LIMIT = 20
 
 
 def _configured_ai_providers(settings) -> list[dict]:
-    """Proveedores seleccionables. El remoto solo si está configurado."""
-    providers = [{"value": "local", "label": "IA local (agente + Ollama)"}]
+    """Proveedores seleccionables. El remoto solo si está configurado.
+
+    En producción (APP_ENV=production) solo se ofrecen proveedores remotos: el
+    proveedor local (Ollama/agente en loopback) no es accesible desde el
+    contenedor ni está permitido en producción (ver app/ai/factory.py).
+    """
+    providers: list[dict] = []
+    if not is_production(settings):
+        providers.append({"value": "local", "label": "IA local (agente + Ollama)"})
     if settings.groq_api_key and settings.groq_model:
         providers.append({"value": "groq", "label": "Groq (remoto)"})
     if settings.openrouter_api_key and settings.openrouter_model:
         providers.append({"value": "openrouter", "label": "OpenRouter (remoto)"})
     return providers
+
+
+def _safe_error_summary(items) -> str:
+    """Motivo resumido y seguro para la UI (sin secretos ni stack traces).
+
+    El detalle técnico completo permanece en BD/logs; aquí solo se expone un
+    texto corto, sin credenciales ni saltos de línea.
+    """
+    texts: list[str] = []
+    for item in items or []:
+        value = item.get("error") if isinstance(item, dict) else item
+        text = str(value or "").strip()
+        if text:
+            texts.append(text)
+        if len(texts) >= 3:
+            break
+    if not texts:
+        return ""
+    summary = re.sub(r"\s+", " ", " | ".join(texts)).strip()
+    summary = re.sub(r"(?i)bearer\s+[A-Za-z0-9._\-]+", "Bearer ***", summary)
+    summary = re.sub(r"(?i)(api[_-]?key|token|secret)\s*[:=]\s*\S+", r"\1=***", summary)
+    summary = re.sub(r"sk-[A-Za-z0-9._\-]{6,}", "sk-***", summary)
+    return summary[:240]
 
 
 def _validate_ai_limit(raw: str | None) -> int | None:
@@ -705,7 +736,9 @@ def supervision(
     ai_processed: int | None = Query(default=None),
     ai_reused: int | None = Query(default=None),
     ai_errors: int | None = Query(default=None),
+    ai_success: int | None = Query(default=None),
     ai_failed: int | None = Query(default=None),
+    ai_failure_reason: str | None = Query(default=None),
     ai_seconds: float | None = Query(default=None),
     ai_empty: int | None = Query(default=None),
     ai_unavailable: int | None = Query(default=None),
@@ -942,9 +975,11 @@ def supervision(
                 "limit": ai_limit,
                 "candidates": ai_candidates,
                 "processed": ai_processed,
+                "success": ai_success or 0,
                 "reused": ai_reused,
                 "errors": ai_errors,
                 "failed": ai_failed,
+                "failure_reason": ai_failure_reason or "",
                 "seconds": ai_seconds,
                 "rescored": ai_rescored,
                 "rescore_errors": ai_rescore_errors,
@@ -1155,6 +1190,11 @@ def run_ai_analysis(
     allowed = {p["value"] for p in _configured_ai_providers(settings)}
     if provider not in allowed:
         raise HTTPException(status_code=400, detail="Proveedor de IA no permitido")
+    if is_production(settings) and provider not in PRODUCTION_PROVIDERS:
+        # Defensa adicional: aunque llegue el valor por HTTP, en producción
+        # solo se admiten proveedores remotos (ver app/ai/factory.py).
+        raise HTTPException(
+            status_code=400, detail="Proveedor de IA no permitido en producción")
     selected_limit = _validate_ai_limit(limit)
     if selected_limit is None:
         raise HTTPException(status_code=400, detail="Límite de IA inválido")
@@ -1220,9 +1260,12 @@ def run_ai_analysis(
         "ai_limit": selected_limit,
         "ai_candidates": report["candidates"],
         "ai_processed": report["processed"],
+        "ai_success": report.get("success", 0),
         "ai_reused": report["reused"],
         "ai_errors": report["errors"],
         "ai_failed": report["failed"],
+        "ai_failure_reason": _safe_error_summary(
+            (report.get("failures") or []) + (report.get("error_reasons") or [])),
         "ai_seconds": elapsed,
         "ai_rescored": rescored,
         "ai_rescore_errors": len(rescore_errors),

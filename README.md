@@ -72,10 +72,15 @@ existe una llave fiable para hacer *join*, y no entra en el scoring.
 - **Idempotencia**: `input_hash = sha256(prompt_version + schema_version +
   transcripción)` + unique `(conversation_id, input_hash)`. Reutilizar una
   extracción **nunca** salta la validación: se revalida en el momento.
-- **Proveedores**: `AI_PROVIDER=ollama` (desarrollo) u `openrouter`
-  (producción). En producción no se admite Ollama y se exige
-  `OPENROUTER_API_KEY` + `OPENROUTER_MODEL`; si falta, la app y los entrypoints
-  batch fallan con un mensaje claro.
+- **Proveedores**: `ollama`/`local` (desarrollo) u `openrouter`/`groq`
+  (producción). En producción no se admite Ollama/local y, para el proveedor
+  remoto configurado, se exigen sus credenciales (`OPENROUTER_*` o `GROQ_*`);
+  si faltan, la app y los entrypoints batch fallan con un mensaje claro.
+- El **modelo es configurable por entorno** (`OPENROUTER_MODEL`/`GROQ_MODEL`).
+  No se garantiza disponibilidad de ningún modelo concreto: los modelos
+  gratuitos pueden devolver `HTTP 429` (rate limit). El sistema lo registra
+  como error de extracción (no bloquea ni duplica la conversación) y el
+  reintento es idempotente.
 
 ## Scoring
 

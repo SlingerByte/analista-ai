@@ -217,50 +217,30 @@ def process_conversation(
     # previa: si la reextracción falla, el scoring conserva las señales buenas.
     make_current = status == STATUS_SUCCESS
 
-    if force:
-        # El unique (conversation_id, input_hash) impide duplicar el mismo
-        # input efectivo: `force` actualiza la fila existente en vez de
-        # insertar (útil tras un error transitorio del proveedor).
-        same = _find_same_input(session, conversation_id, input_hash, extractor)
-        if same is not None:
-            same.lead_id = conversation.lead_id
-            same.status = status
-            same.error = error
-            same.fields = fields
-            same.raw_response = raw_response
-            same.latency_ms = outcome.latency_ms
-            same.is_current = make_current
-            extraction = same
-            session.flush()
-            if make_current:
-                _mark_current(session, conversation_id, extraction.extraction_id)
-            session.commit()
-            return ProcessResult(
-                conversation_id=conversation_id,
-                lead_id=conversation.lead_id,
-                reused=False,
-                extraction=extraction,
-            )
-
-    if reusable is not None:
-        # `fields` no reconstruible: se reextrae y se actualiza la misma fila
-        # para respetar el unique (conversation_id, input_hash).
-        reusable.lead_id = conversation.lead_id
-        reusable.status = status
-        reusable.error = error
-        reusable.fields = fields
-        reusable.raw_response = raw_response
-        reusable.latency_ms = outcome.latency_ms
-        reusable.is_current = make_current
+    # El unique (conversation_id, input_hash) impide duplicar el mismo input
+    # efectivo. Si ya existe una fila para ese input (p. ej. un intento previo
+    # con error), se actualiza en el lugar en vez de insertar: así el reintento
+    # es idempotente tras errores transitorios del proveedor (HTTP 429, red…)
+    # sin violar el unique ni dejar la conversación atrapada en reintentos.
+    same = _find_same_input(session, conversation_id, input_hash, extractor)
+    if same is not None:
+        same.lead_id = conversation.lead_id
+        same.status = status
+        same.error = error
+        same.fields = fields
+        same.raw_response = raw_response
+        same.latency_ms = outcome.latency_ms
+        same.is_current = make_current
+        extraction = same
         session.flush()
         if make_current:
-            _mark_current(session, conversation_id, reusable.extraction_id)
+            _mark_current(session, conversation_id, extraction.extraction_id)
         session.commit()
         return ProcessResult(
             conversation_id=conversation_id,
             lead_id=conversation.lead_id,
             reused=False,
-            extraction=reusable,
+            extraction=extraction,
         )
 
     extraction = AIExtraction(
@@ -310,6 +290,7 @@ def process_pending(
     processed = reused = errors = failed = 0
     processed_ids: list[str] = []
     failures: list[dict] = []
+    error_reasons: list[dict] = []
     for conversation_id in ids:
         try:
             result = process_conversation(session, conversation_id, extractor)
@@ -327,7 +308,14 @@ def process_pending(
             reused += 1
         elif result.extraction.status == STATUS_ERROR:
             errors += 1
+            error_reasons.append(
+                {"conversation_id": conversation_id, "error": result.extraction.error}
+            )
 
+    # Éxitos = intentos sin excepción que no terminaron en error de extracción
+    # (nuevos + reutilizados). `processed` ya incluye errores, por lo que restar
+    # `errors` nunca produce un valor negativo.
+    success = processed - errors
     return {
         "provider": extractor.provider,
         "model": extractor.model,
@@ -335,10 +323,12 @@ def process_pending(
         "schema_version": SCHEMA_VERSION,
         "candidates": len(ids),
         "processed": processed,
+        "success": success,
         "reused": reused,
         "errors": errors,
         "failed": failed,
         "failures": failures,
+        "error_reasons": error_reasons,
         # Aditivo: conversaciones con extracción exitosa (nuevas o reutilizadas).
         "processed_ids": processed_ids,
     }

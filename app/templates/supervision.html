@@ -301,28 +301,34 @@
           return fetch(OLLAMA_URL + "/api/tags", { cache: "no-store", signal: controller.signal })
             .then(function (resp) {
               clearTimeout(timer);
-              if (!resp.ok) { throw new Error("http"); }
-              return resp.json();
+              if (!resp.ok) { return { state: "http", models: [] }; }
+              return resp.json().then(function (data) {
+                var models = ((data && data.models) || [])
+                  .map(function (m) { return m && m.name; })
+                  .filter(Boolean);
+                return { state: models.length ? "available" : "empty", models: models };
+              });
             })
-            .then(function (data) {
-              return ((data && data.models) || [])
-                .map(function (m) { return m && m.name; })
-                .filter(Boolean);
-            })
-            .catch(function () { clearTimeout(timer); return null; });
+            .catch(function (err) {
+              clearTimeout(timer);
+              var state = (err && err.name === "AbortError") ? "timeout" : "unreachable";
+              return { state: state, models: [] };
+            });
         }
 
-        detectOllama().then(function (models) {
-          localModel = models ? pickModel(models) : null;
+        detectOllama().then(function (result) {
+          status.setAttribute("data-ollama", result.state);
+          localModel = (result.state === "available") ? pickModel(result.models) : null;
           if (localModel) {
             addOption(LOCAL_VALUE, "🖥️ Ollama local — " + localModel, false);
             status.textContent = "🟢 Ollama local disponible — " + localModel;
           } else {
             addOption(LOCAL_VALUE, "🖥️ Ollama local — No disponible", true);
             status.textContent = "⚪ Ollama local no disponible";
+            // Diagnóstico técnico solo para desarrollo (no se muestra al usuario).
+            console.info("[ollama] no disponible: " + result.state +
+                         " (revisa Ollama en ejecución, OLLAMA_ORIGINS y PNA)");
           }
-        }).catch(function () {
-          status.textContent = "⚪ Ollama local no disponible";
         });
 
         form.addEventListener("submit", function (event) {

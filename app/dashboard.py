@@ -7,6 +7,7 @@ identidad. Rutas de negocio requieren login; /login y /health son públicas.
 
 from __future__ import annotations
 
+import logging
 import math
 import time
 from datetime import date
@@ -21,6 +22,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.ai.browser import BrowserOllamaReplay, parse_browser_result
+from app.ai.errors import classify_ai_error, humanize_ai_error_text
 from app.ai.factory import PRODUCTION_PROVIDERS, build_extractor
 from app.ai.prompt import EXTRACTION_PROMPT_VERSION, build_messages
 from app.ai.schema import SCHEMA_VERSION, ExtractionResult
@@ -65,6 +67,8 @@ from app.scoring.service import score_and_persist_lead
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+logger = logging.getLogger("analista_ia.ai")
 
 UNKNOWN = "Desconocido"
 
@@ -184,37 +188,21 @@ def _configured_ai_providers(settings) -> list[dict]:
 
 
 def _humanize_ai_error(text: str) -> str:
-    """Traduce un error técnico a un mensaje de negocio, sin filtrar detalles."""
-    token = (text or "").lower()
-    if "429" in token or ("rate" in token and "limit" in token) or "too many requests" in token:
-        return ("El proveedor de IA está temporalmente limitado. Intenta nuevamente "
-                "en unos minutos o selecciona otro proveedor.")
-    if ("401" in token or "403" in token or "unauthorized" in token
-            or "forbidden" in token):
-        return "El proveedor de IA no está correctamente configurado."
-    if "timeout" in token or "timed out" in token:
-        return "El proveedor de IA tardó demasiado en responder."
-    if ("network" in token or "urlerror" in token or "connection" in token
-            or "unreachable" in token or "failed to fetch" in token
-            or "refused" in token):
-        return "No fue posible conectar con el proveedor de IA."
-    if ("schema" in token or "invalid json" in token or "no choices" in token
-            or "could not parse" in token or "validation" in token):
-        return "El proveedor de IA no pudo procesar esta conversación."
-    return "No fue posible completar el análisis."
+    """Mensaje de negocio (sin detalles técnicos) a partir del error técnico."""
+    return humanize_ai_error_text(text)
 
 
 def _safe_error_summary(items) -> str:
     """Motivo humano y seguro para la UI.
 
     Nunca expone el JSON del proveedor, URLs internas, claves, tokens ni stack
-    traces; el detalle técnico completo permanece en BD/logs.
+    traces; el detalle técnico completo (y su categoría) permanece en BD/logs.
     """
     for item in items or []:
         value = item.get("error") if isinstance(item, dict) else item
         text = str(value or "").strip()
         if text:
-            return _humanize_ai_error(text)
+            return humanize_ai_error_text(text)
     return ""
 
 
@@ -1274,6 +1262,13 @@ def run_ai_analysis(
             continue
         rescored += 1
 
+    # Diagnóstico seguro en logs (sin secretos): categoría técnica por fallo.
+    for item in (report.get("failures") or []) + (report.get("error_reasons") or []):
+        logger.warning(
+            "ai_extraction_failed category=%s provider=%s conversation=%s",
+            classify_ai_error(item.get("error")), provider,
+            item.get("conversation_id"))
+
     params = {
         "ai": "1",
         "ai_provider": provider,
@@ -1362,6 +1357,8 @@ def ai_local_result(
     try:
         parsed = parse_browser_result(raw_result)
     except ValidationError:
+        logger.warning("ai_local_result category=%s conversation=%s",
+                       "schema_validation", conversation_id)
         return JSONResponse({
             "ok": False, "conversation_id": conversation_id, "status": "error",
             "message": "El proveedor de IA no pudo procesar esta conversación.",
@@ -1372,12 +1369,17 @@ def ai_local_result(
         result = process_conversation(session, conversation_id, replay)
     except Exception:  # noqa: BLE001 - nunca exponer el detalle técnico
         session.rollback()
+        logger.warning("ai_local_result category=%s conversation=%s",
+                       "unknown_provider_error", conversation_id)
         return JSONResponse({
             "ok": False, "conversation_id": conversation_id, "status": "error",
             "message": "No fue posible completar el análisis.",
         })
 
     status = result.extraction.status
+    if status != STATUS_SUCCESS:
+        logger.warning("ai_local_result category=%s conversation=%s",
+                       classify_ai_error(result.extraction.error), conversation_id)
     rescored = False
     if status == STATUS_SUCCESS and conversation.lead_id:
         try:

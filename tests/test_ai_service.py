@@ -462,6 +462,23 @@ def test_different_input_hash_after_error_creates_new_row(factory):
         assert _count(session, "CONV-00001") == 2
 
 
+class FakeOtherProvider(FakeSuccessExtractor):
+    provider = "groq"
+    model = "openai/gpt-oss-20b"
+
+
+def test_reintento_con_otro_proveedor_mismo_input_no_rompe_unique(factory):
+    """Cambiar de proveedor para el mismo input no debe violar el unique."""
+    with factory() as session:
+        err = process_conversation(session, "CONV-00001", FakeFailExtractor())
+        assert err.extraction.status == STATUS_ERROR
+        ok = process_conversation(session, "CONV-00001", FakeOtherProvider())
+        assert ok.extraction.extraction_id == err.extraction.extraction_id
+        assert ok.extraction.status == STATUS_SUCCESS
+        assert ok.extraction.provider == "groq"
+        assert _count(session, "CONV-00001") == 1
+
+
 def test_force_semantics_preserved_with_same_input(factory):
     extractor = FakeSuccessExtractor()
     with factory() as session:

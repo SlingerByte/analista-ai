@@ -83,15 +83,28 @@ existe una llave fiable para hacer *join*, y no entra en el scoring.
   reintento es idempotente.
 - **IA local en el navegador (opcional).** Si el usuario tiene Ollama corriendo
   en su equipo, `/supervision` lo detecta **desde el navegador**
-  (`http://127.0.0.1:11434`) y permite ejecutar la extracción sin enviar la
-  conversación a un proveedor remoto. El backend **no** contacta a Ollama: el
-  navegador llama a Ollama con el mismo prompt V8/schema v1 (que el backend
-  entrega) y envía el resultado de vuelta, donde se valida y persiste con la
-  lógica existente (evidencia, `input_hash`, `is_current`, scoring).
-  Requiere que **Ollama en el equipo del usuario** acepte el origen de la
-  página: `OLLAMA_ORIGINS=https://<tu-dominio>` (o el origen local en desarrollo),
-  reiniciando Ollama tras configurarla. Esta configuración es del cliente, no
-  del servidor.
+  (`http://127.0.0.1:11434/api/tags`) y permite ejecutar la extracción sin
+  enviar la conversación a un proveedor remoto. El backend **no** contacta a
+  Ollama: el navegador llama a Ollama con el mismo prompt V8/schema v1 (que el
+  backend entrega) y envía el resultado de vuelta, donde se valida y persiste
+  con la lógica existente (evidencia, `input_hash`, `is_current`, scoring).
+
+  Configuración **en la PC del usuario** (no en Render):
+
+  ```bash
+  # 1) Permitir el origen de la aplicación desplegada en Ollama.
+  #    Windows (PowerShell, sesión actual):
+  setx OLLAMA_ORIGINS "https://<tu-dominio>"
+  #    macOS/Linux (antes de arrancar Ollama):
+  export OLLAMA_ORIGINS="https://<tu-dominio>"
+  # 2) Reiniciar Ollama y verificar que responde:
+  #    http://127.0.0.1:11434/api/tags
+  ```
+
+  Si Ollama no responde, la UI muestra “⚪ Ollama local no disponible” (sin
+  errores técnicos). Nota: el navegador solo expone un fallo genérico, no
+  distingue CORS/red; ver la consola del navegador (`[ollama] …`) para el
+  diagnóstico durante desarrollo. El backend nunca usa `127.0.0.1`.
 
 ## Scoring
 

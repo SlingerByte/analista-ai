@@ -11,6 +11,7 @@ import app.models  # noqa: F401
 from app.auth import get_session as auth_get_session
 from app.auth import hash_password
 from app.config import Settings
+from app.ai.errors import classify_ai_error
 from app.dashboard import (
     _configured_ai_providers,
     _humanize_ai_error,
@@ -120,6 +121,23 @@ def test_safe_error_summary_nunca_filtra_detalles():
     ])
     for forbidden in ("sk-abcXYZ", "supersecreto", "https://", "{", "Bearer"):
         assert forbidden not in summary
+
+
+def test_classify_ai_error_categorias():
+    cases = {
+        'HTTP 429: {"error":"rate limited"}': "provider_rate_limit",
+        "HTTP 401 Unauthorized": "provider_auth",
+        "HTTP 403 Forbidden": "provider_auth",
+        "HTTP 400 Bad Request": "provider_bad_request",
+        "HTTP 503 Service Unavailable": "provider_unavailable",
+        "network error: TimeoutError": "provider_timeout",
+        "response has no choices": "invalid_model_response",
+        "schema validation failed: 1 error(s)": "schema_validation",
+        "evidence_not_in_conversation": "evidence_validation",
+        "algo inesperado": "unknown_provider_error",
+    }
+    for text, expected in cases.items():
+        assert classify_ai_error(text) == expected, text
 
 
 # --- Endpoint: producción rechaza 'local' enviado manualmente -----------------

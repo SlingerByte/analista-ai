@@ -97,14 +97,18 @@ def _find_same_input(
     input_hash: str,
     extractor: AIExtractor,
 ) -> AIExtraction | None:
-    """Fila del mismo input efectivo (cualquier estado), para `force`."""
+    """Fila del mismo input efectivo (cualquier estado y proveedor).
+
+    La identidad de fila es ``(conversation_id, input_hash)`` —igual que el
+    unique—, NO el proveedor: cambiar de proveedor para el mismo input no debe
+    generar un INSERT que viole el unique.
+    """
+    _ = extractor
     return session.scalar(
         sa.select(AIExtraction)
         .where(
             AIExtraction.conversation_id == conversation_id,
             AIExtraction.input_hash == input_hash,
-            AIExtraction.provider == extractor.provider,
-            AIExtraction.model_name == extractor.model,
         )
         .order_by(AIExtraction.extraction_id.desc())
     )
@@ -116,13 +120,13 @@ def _find_reusable(
     input_hash: str,
     extractor: AIExtractor,
 ) -> AIExtraction | None:
+    """Extracción exitosa del mismo input efectivo (cualquier proveedor)."""
+    _ = extractor
     return session.scalar(
         sa.select(AIExtraction)
         .where(
             AIExtraction.conversation_id == conversation_id,
             AIExtraction.input_hash == input_hash,
-            AIExtraction.provider == extractor.provider,
-            AIExtraction.model_name == extractor.model,
             AIExtraction.status == STATUS_SUCCESS,
         )
         .order_by(AIExtraction.extraction_id.desc())
@@ -225,6 +229,9 @@ def process_conversation(
     same = _find_same_input(session, conversation_id, input_hash, extractor)
     if same is not None:
         same.lead_id = conversation.lead_id
+        # El proveedor/modelo reflejan quién produjo el resultado vigente.
+        same.provider = extractor.provider
+        same.model_name = extractor.model
         same.status = status
         same.error = error
         same.fields = fields
